@@ -1,6 +1,6 @@
 @echo off
 set "projectdir=%CD%"
-set "PLUGIN_NAME="$fastloader""
+set "PLUGIN_NAME="$comp.injector""
 
 :find_vs_path
 set "vs_path="

@@ -3,7 +3,7 @@
 #include "audio.h"
 #include "default_audio_data.h" 
 
-FastLoader::FastLoader(HINSTANCE pluginHandle)
+CompInjector::CompInjector(HINSTANCE pluginHandle)
 {
 
     handle = pluginHandle;
@@ -18,14 +18,14 @@ FastLoader::FastLoader(HINSTANCE pluginHandle)
 }
 
 
-void FastLoader::HandleVanillaDataFiles()
+void CompInjector::HandleVanillaDataFiles()
 {
    
 
     int flaAudioLoaderSetting = gConfig.ReadInteger("MAIN", "FLAAudioLoader", 1);
 
     std::string settingsPath = GAME_PATH((char*)"data/gtasa_vehicleAudioSettings.cfg");
-    std::string backupPath = settingsPath + ".fastloader.bak";
+    std::string backupPath = settingsPath + ".comp.injector.bak";
 
 
     
@@ -36,7 +36,7 @@ void FastLoader::HandleVanillaDataFiles()
         if (std::filesystem::exists(settingsPath) && !std::filesystem::exists(backupPath))
         {
             int result = MessageBox(NULL,
-                "FastLoader (FLAAudioLoader) is about to modify 'gtasa_vehicleAudioSettings.cfg' to add new vehicle sounds.\n\n"
+                "Comp.Injector (FLAAudioLoader) is about to modify 'gtasa_vehicleAudioSettings.cfg' to add new vehicle sounds.\n\n"
                 "Do you want to create a one-time backup of the original file? (Recommended)",
                 MODNAME,
                 MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1);
@@ -116,7 +116,7 @@ void FastLoader::HandleVanillaDataFiles()
 
 
 
-void FastLoader::ParseModloader()
+void CompInjector::ParseModloader()
 {
   
     std::function<void(const std::filesystem::path&)> traverse;
@@ -141,7 +141,7 @@ void FastLoader::ParseModloader()
                 std::string ext = entry.path().extension().string();
                 std::string path = entry.path().string();
 
-                if (ext == ".fastloader")
+                if (ext == ".comp.injector")
                 {
                     std::ifstream in(path);
                     std::string line;

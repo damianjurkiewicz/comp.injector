@@ -1,7 +1,7 @@
 #pragma once
 #include <wtypes.h>
 
-class FastLoader
+class CompInjector
 {
 private:
     HINSTANCE handle;
@@ -11,6 +11,5 @@ private:
     void HandleVanillaDataFiles(); 
 
 public:
-    FastLoader(HINSTANCE pluginHandle);
+    CompInjector(HINSTANCE pluginHandle);
 };
-

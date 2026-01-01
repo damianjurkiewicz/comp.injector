@@ -14,8 +14,8 @@
     <ProjectGuid>{8EBDC272-FA72-3B68-8367-353FEF1B326C}</ProjectGuid>
     <IgnoreWarnCompileDuplicatedFilename>true</IgnoreWarnCompileDuplicatedFilename>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>$fastloader</RootNamespace>
-    <ProjectName>fastloader</ProjectName>
+    <RootNamespace>$comp.injector</RootNamespace>
+    <ProjectName>comp.injector</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -44,14 +44,14 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>bin\</OutDir>
     <IntDir>obj\Win32\Debug\</IntDir>
-    <TargetName>$fastloader</TargetName>
+    <TargetName>$comp.injector</TargetName>
     <TargetExt>.asi</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>bin\</OutDir>
     <IntDir>obj\Win32\Release\</IntDir>
-    <TargetName>$fastloader</TargetName>
+    <TargetName>$comp.injector</TargetName>
     <TargetExt>.asi</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -72,7 +72,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>plugin_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\plugin-sdk\output\lib;..\tools\build\bin;..\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <ImportLibrary>$fastloader.lib</ImportLibrary>
+      <ImportLibrary>$comp.injector.lib</ImportLibrary>
       <AdditionalOptions>/SAFESEH:NO %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -98,7 +98,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>plugin.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\plugin-sdk\output\lib;..\tools\build\bin;..\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <ImportLibrary>$fastloader.lib</ImportLibrary>
+      <ImportLibrary>$comp.injector.lib</ImportLibrary>
       <AdditionalOptions>/SAFESEH:NO %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
