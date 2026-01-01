@@ -11,12 +11,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{8EBDC272-FA72-3B68-8367-353FEF1B326C}</ProjectGuid>
+    <ProjectGuid>{24664EC1-1034-42C7-F9C7-B2EDE5341E2C}</ProjectGuid>
     <IgnoreWarnCompileDuplicatedFilename>true</IgnoreWarnCompileDuplicatedFilename>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>$comp.injector</RootNamespace>
-    <ProjectName>comp.injector</ProjectName>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -43,16 +41,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\..\cleanersa\asi\COMP.Injector</OutDir>
+    <OutDir>bin\</OutDir>
     <IntDir>obj\Win32\Debug\</IntDir>
-    <TargetName>COMP.Injector</TargetName>
+    <TargetName>$comp.injector</TargetName>
     <TargetExt>.asi</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\..\cleanersa\asi\COMP.Injector</OutDir>
+    <OutDir>bin\</OutDir>
     <IntDir>obj\Win32\Release\</IntDir>
-    <TargetName>COMP.Injector</TargetName>
+    <TargetName>$comp.injector</TargetName>
     <TargetExt>.asi</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -104,15 +102,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\loader\additionaltxd.h" />
     <ClInclude Include="..\src\loader\audio.h" />
+    <ClInclude Include="..\src\loader\cargrp.h" />
+    <ClInclude Include="..\src\loader\default_audio_data.h" />
     <ClInclude Include="..\src\loader\loader_core.h" />
+    <ClInclude Include="..\src\loader\objdat.h" />
+    <ClInclude Include="..\src\loader\weapon_config.h" />
     <ClInclude Include="..\src\pch.h" />
     <ClInclude Include="..\src\tVehicleAudioSetting.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\dllmain.cpp" />
+    <ClCompile Include="..\src\loader\additionaltxd.cpp" />
     <ClCompile Include="..\src\loader\audio.cpp" />
+    <ClCompile Include="..\src\loader\cargrp.cpp" />
     <ClCompile Include="..\src\loader\loader_core.cpp" />
+    <ClCompile Include="..\src\loader\objdat.cpp" />
+    <ClCompile Include="..\src\loader\weapon_config.cpp" />
     <ClCompile Include="..\src\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
