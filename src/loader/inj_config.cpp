@@ -45,6 +45,74 @@ namespace
         return value.substr(first);
     }
 
+    std::vector<std::string> SplitTokens(const std::string& value)
+    {
+        std::vector<std::string> tokens;
+        size_t i = 0;
+        while (i < value.size())
+        {
+            while (i < value.size() && std::isspace(static_cast<unsigned char>(value[i])))
+            {
+                ++i;
+            }
+
+            if (i >= value.size())
+            {
+                break;
+            }
+
+            size_t start = i;
+            while (i < value.size() && !std::isspace(static_cast<unsigned char>(value[i])))
+            {
+                ++i;
+            }
+
+            tokens.emplace_back(value.substr(start, i - start));
+        }
+
+        return tokens;
+    }
+
+    bool ContainsTokenSequence(const std::string& currentValue, const std::string& candidate)
+    {
+        if (candidate.empty())
+        {
+            return true;
+        }
+
+        std::vector<std::string> currentTokens = SplitTokens(currentValue);
+        std::vector<std::string> candidateTokens = SplitTokens(candidate);
+        if (candidateTokens.empty())
+        {
+            return true;
+        }
+
+        if (candidateTokens.size() > currentTokens.size())
+        {
+            return false;
+        }
+
+        for (size_t i = 0; i + candidateTokens.size() <= currentTokens.size(); ++i)
+        {
+            bool match = true;
+            for (size_t j = 0; j < candidateTokens.size(); ++j)
+            {
+                if (currentTokens[i + j] != candidateTokens[j])
+                {
+                    match = false;
+                    break;
+                }
+            }
+
+            if (match)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     bool TryParseSection(const std::string& line, std::string& section)
     {
         std::string trimmed = Trim(line);
@@ -399,7 +467,21 @@ void CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, 
             std::string updatedValue = entry.value;
             if (entry.modifier == InjModifier::Merge)
             {
-                updatedValue = currentValue + entry.value;
+                if (ContainsTokenSequence(currentValue, entry.value))
+                {
+                    keyFound = true;
+                    break;
+                }
+
+                updatedValue = currentValue;
+                if (!updatedValue.empty() && !entry.value.empty())
+                {
+                    if (!std::isspace(static_cast<unsigned char>(updatedValue.back())))
+                    {
+                        updatedValue += " ";
+                    }
+                }
+                updatedValue += entry.value;
             }
 
             lines[i] = prefix + spacing + updatedValue;
