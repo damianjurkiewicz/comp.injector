@@ -2,6 +2,12 @@
 #include "loader_core.h"
 #include "audio.h"
 #include "weapon_config.h"
+#include "model_special_features.h"
+#include "train_type_carriages.h"
+#include "radar_blip_sprite_filenames.h"
+#include "melee_config.h"
+#include "cheat_strings.h"
+#include "tracks_config.h"
 
 
 CompInjector::CompInjector(HINSTANCE pluginHandle)
@@ -20,6 +26,36 @@ CompInjector::CompInjector(HINSTANCE pluginHandle)
     if (gConfig.ReadInteger("MAIN", "FLAWeaponConfigLoader", 1) == 1)
     {
         FLAWeaponConfigLoader.Process();
+    }
+
+    if (gConfig.ReadInteger("MAIN", "FLAModelSpecialFeaturesLoader", 1) == 1)
+    {
+        FLAModelSpecialFeaturesLoader.Process();
+    }
+
+    if (gConfig.ReadInteger("MAIN", "FLATrainTypeCarriagesLoader", 1) == 1)
+    {
+        FLATrainTypeCarriagesLoader.Process();
+    }
+
+    if (gConfig.ReadInteger("MAIN", "FLARadarBlipSpriteFilenamesLoader", 1) == 1)
+    {
+        FLARadarBlipSpriteFilenamesLoader.Process();
+    }
+
+    if (gConfig.ReadInteger("MAIN", "FLAMeleeConfigLoader", 1) == 1)
+    {
+        FLAMeleeConfigLoader.Process();
+    }
+
+    if (gConfig.ReadInteger("MAIN", "FLACheatStringsLoader", 1) == 1)
+    {
+        FLACheatStringsLoader.Process();
+    }
+
+    if (gConfig.ReadInteger("MAIN", "FLATracksConfigLoader", 1) == 1)
+    {
+        FLATracksConfigLoader.Process();
     }
 }
 
@@ -159,6 +195,30 @@ void CompInjector::ParseModloader()
                         if (gConfig.ReadInteger("MAIN", "FLAWeaponConfigLoader", 1) == 1)
                         {
                             FLAWeaponConfigLoader.Parse(line);
+                        }
+                        if (gConfig.ReadInteger("MAIN", "FLAModelSpecialFeaturesLoader", 1) == 1)
+                        {
+                            FLAModelSpecialFeaturesLoader.Parse(line);
+                        }
+                        if (gConfig.ReadInteger("MAIN", "FLATrainTypeCarriagesLoader", 1) == 1)
+                        {
+                            FLATrainTypeCarriagesLoader.Parse(line);
+                        }
+                        if (gConfig.ReadInteger("MAIN", "FLARadarBlipSpriteFilenamesLoader", 1) == 1)
+                        {
+                            FLARadarBlipSpriteFilenamesLoader.Parse(line);
+                        }
+                        if (gConfig.ReadInteger("MAIN", "FLAMeleeConfigLoader", 1) == 1)
+                        {
+                            FLAMeleeConfigLoader.Parse(line);
+                        }
+                        if (gConfig.ReadInteger("MAIN", "FLACheatStringsLoader", 1) == 1)
+                        {
+                            FLACheatStringsLoader.Parse(line);
+                        }
+                        if (gConfig.ReadInteger("MAIN", "FLATracksConfigLoader", 1) == 1)
+                        {
+                            FLATracksConfigLoader.Parse(line);
                         }
                     }
                     in.close();
