@@ -74,6 +74,11 @@ void CFLAModelSpecialFeaturesLoader::Process()
     }
 }
 
+void CFLAModelSpecialFeaturesLoader::AddLine(const std::string &line)
+{
+    store.push_back(line);
+}
+
 void CFLAModelSpecialFeaturesLoader::Parse(const std::string &line)
 {
     char first[256] = {};

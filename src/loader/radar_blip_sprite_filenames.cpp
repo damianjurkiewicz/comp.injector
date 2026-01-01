@@ -75,6 +75,11 @@ void CFLARadarBlipSpriteFilenamesLoader::Process()
     }
 }
 
+void CFLARadarBlipSpriteFilenamesLoader::AddLine(const std::string &line)
+{
+    store.push_back(line);
+}
+
 void CFLARadarBlipSpriteFilenamesLoader::Parse(const std::string &line)
 {
     std::istringstream stream(line);

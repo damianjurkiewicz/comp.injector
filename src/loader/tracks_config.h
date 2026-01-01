@@ -8,6 +8,7 @@ private:
     void UpdateTracksConfigFile();
 
 public:
+    void AddLine(const std::string &line);
     void Parse(const std::string &line);
     void Process();
 };

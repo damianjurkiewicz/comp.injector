@@ -75,6 +75,11 @@ void CFLATracksConfigLoader::Process()
     }
 }
 
+void CFLATracksConfigLoader::AddLine(const std::string &line)
+{
+    store.push_back(line);
+}
+
 void CFLATracksConfigLoader::Parse(const std::string &line)
 {
     std::istringstream stream(line);

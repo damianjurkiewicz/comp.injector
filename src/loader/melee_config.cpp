@@ -74,6 +74,11 @@ void CFLAMeleeConfigLoader::Process()
     }
 }
 
+void CFLAMeleeConfigLoader::AddLine(const std::string &line)
+{
+    store.push_back(line);
+}
+
 void CFLAMeleeConfigLoader::Parse(const std::string &line)
 {
     int index = 0;

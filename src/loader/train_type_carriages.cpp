@@ -75,6 +75,11 @@ void CFLATrainTypeCarriagesLoader::Process()
     }
 }
 
+void CFLATrainTypeCarriagesLoader::AddLine(const std::string &line)
+{
+    store.push_back(line);
+}
+
 void CFLATrainTypeCarriagesLoader::Parse(const std::string &line)
 {
     std::istringstream stream(line);

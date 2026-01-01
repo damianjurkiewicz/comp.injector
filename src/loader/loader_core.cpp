@@ -158,7 +158,19 @@ void CompInjector::HandleVanillaDataFiles()
 
 void CompInjector::ParseModloader()
 {
-  
+    auto isCommentOrEmpty = [](const std::string &line)
+        {
+            const auto firstNonWhitespace = line.find_first_not_of(" \t\r\n");
+            if (firstNonWhitespace == std::string::npos)
+            {
+                return true;
+            }
+
+            const std::string_view trimmed(line.c_str() + firstNonWhitespace, line.size() - firstNonWhitespace);
+
+            return trimmed.starts_with(";") || trimmed.starts_with("#") || trimmed.starts_with("//");
+        };
+
     std::function<void(const std::filesystem::path&)> traverse;
     traverse = [&](const std::filesystem::path& dir)
         {
@@ -180,6 +192,7 @@ void CompInjector::ParseModloader()
                 }
                 std::string ext = entry.path().extension().string();
                 std::string path = entry.path().string();
+                std::string filename = entry.path().filename().string();
 
                 if (ext == ".fla")
                 {
@@ -222,6 +235,60 @@ void CompInjector::ParseModloader()
                         if (gConfig.ReadInteger("MAIN", "FLATracksConfigLoader", 1) == 1)
                         {
                             FLATracksConfigLoader.Parse(line);
+                        }
+                    }
+                    in.close();
+                }
+                else if (ext == ".dat")
+                {
+                    std::ifstream in(path);
+                    if (!in.is_open())
+                    {
+                        continue;
+                    }
+
+                    std::string line;
+                    while (getline(in, line))
+                    {
+                        if (isCommentOrEmpty(line))
+                        {
+                            continue;
+                        }
+
+                        if (filename == "gtasa_trainTypeCarriages.dat")
+                        {
+                            if (gConfig.ReadInteger("MAIN", "FLATrainTypeCarriagesLoader", 1) == 1)
+                            {
+                                FLATrainTypeCarriagesLoader.AddLine(line);
+                            }
+                        }
+                        else if (filename == "model_special_features.dat")
+                        {
+                            if (gConfig.ReadInteger("MAIN", "FLAModelSpecialFeaturesLoader", 1) == 1)
+                            {
+                                FLAModelSpecialFeaturesLoader.AddLine(line);
+                            }
+                        }
+                        else if (filename == "gtasa_melee_config.dat")
+                        {
+                            if (gConfig.ReadInteger("MAIN", "FLAMeleeConfigLoader", 1) == 1)
+                            {
+                                FLAMeleeConfigLoader.AddLine(line);
+                            }
+                        }
+                        else if (filename == "gtasa_radarBlipSpriteFilenames.dat")
+                        {
+                            if (gConfig.ReadInteger("MAIN", "FLARadarBlipSpriteFilenamesLoader", 1) == 1)
+                            {
+                                FLARadarBlipSpriteFilenamesLoader.AddLine(line);
+                            }
+                        }
+                        else if (filename == "gtasa_tracks_config.dat")
+                        {
+                            if (gConfig.ReadInteger("MAIN", "FLATracksConfigLoader", 1) == 1)
+                            {
+                                FLATracksConfigLoader.AddLine(line);
+                            }
                         }
                     }
                     in.close();
