@@ -2,7 +2,7 @@
 #include "loader_core.h"
 #include "audio.h"
 #include "weapon_config.h"
-#include "default_audio_data.h" 
+
 
 CompInjector::CompInjector(HINSTANCE pluginHandle)
 {
