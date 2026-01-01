@@ -34,6 +34,18 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
 {
     std::string settingsPath = GAME_PATH((char*)"data/gtasa_weapon_config.dat");
     std::string settingsPathTemp = settingsPath + ".bak";
+    auto isCommentOrEmpty = [](const std::string &value)
+        {
+            const auto start = value.find_first_not_of(" \t\r\n");
+            if (start == std::string::npos)
+            {
+                return true;
+            }
+
+            const std::string_view trimmed(value.c_str() + start, value.size() - start);
+
+            return trimmed.starts_with(";") || trimmed.starts_with("#") || trimmed.starts_with("//");
+        };
 
     if (!std::filesystem::exists(settingsPath))
     {
@@ -41,6 +53,7 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
     }
 
     std::unordered_set<std::string> linesToAdd(store.begin(), store.end());
+    std::unordered_set<std::string> writtenLines;
 
     std::ifstream in(settingsPath);
     std::ofstream out(settingsPathTemp);
@@ -73,19 +86,31 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
                 continue;
             }
 
-            if (linesToAdd.count(line))
+            if (isCommentOrEmpty(line))
+            {
+                out << line << "\n";
+                continue;
+            }
+
+            if (!linesToAdd.count(line))
             {
                 continue;
             }
 
-            out << line << "\n";
+            if (writtenLines.insert(line).second)
+            {
+                out << line << "\n";
+            }
         }
 
         out << marker << "\n";
 
         for (auto &e : store)
         {
-            out << e << "\n";
+            if (writtenLines.insert(e).second)
+            {
+                out << e << "\n";
+            }
         }
 
         if (foundEndMarker)
