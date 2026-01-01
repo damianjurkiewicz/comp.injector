@@ -10,6 +10,18 @@ void CFLAAudioLoader::UpdateAudioFile()
 {
     std::string settingsPath = GAME_PATH((char*)"data/gtasa_vehicleAudioSettings.cfg");
     std::string settingsPathTemp = settingsPath + ".bak"; // This is just a temporary file
+    auto isCommentOrEmpty = [](const std::string &value)
+        {
+            const auto firstNonWhitespace = value.find_first_not_of(" \t\r\n");
+            if (firstNonWhitespace == std::string::npos)
+            {
+                return true;
+            }
+
+            const std::string_view trimmed(value.c_str() + firstNonWhitespace, value.size() - firstNonWhitespace);
+
+            return trimmed.starts_with(";") || trimmed.starts_with("#") || trimmed.starts_with("//");
+        };
 
     if (!std::filesystem::exists(settingsPath))
     {
@@ -20,6 +32,7 @@ void CFLAAudioLoader::UpdateAudioFile()
     // 1. Create a "cache" (a hash set) of all lines we intend to add.
     //    This is very fast for lookups.
     std::unordered_set<std::string> linesToAdd(store.begin(), store.end());
+    std::unordered_set<std::string> writtenLines;
     // --- END OF NEW LOGIC ---
 
     std::ifstream in(settingsPath);
@@ -56,9 +69,20 @@ void CFLAAudioLoader::UpdateAudioFile()
             // 5. DUPLICATE CHECK: If the line is NOT a marker, and NOT the end,
             //    check if it's one of the lines we are about to add.
             //    If it is, skip it (continue) to prevent duplicates.
-            if (linesToAdd.count(line))
+            if (isCommentOrEmpty(line))
             {
-                continue; // This is an old line from our mod, skip it
+                out << line << "\n";
+                continue;
+            }
+
+            if (!linesToAdd.count(line))
+            {
+                continue;
+            }
+
+            if (!writtenLines.insert(line).second)
+            {
+                continue;
             }
             // --- END OF NEW LOGIC ---
 
@@ -73,7 +97,10 @@ void CFLAAudioLoader::UpdateAudioFile()
         // Write all the lines currently loaded from .comp.injector files
         for (auto& e : store)
         {
-            out << e << "\n";
+            if (writtenLines.insert(e).second)
+            {
+                out << e << "\n";
+            }
         }
 
         out << ";the end\n";
@@ -96,6 +123,11 @@ void CFLAAudioLoader::Process() {
     if (!store.empty()) {
         UpdateAudioFile();
     }
+}
+
+void CFLAAudioLoader::AddLine(const std::string &line)
+{
+    store.push_back(line);
 }
 
 void CFLAAudioLoader::Parse(const std::string& line)

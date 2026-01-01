@@ -8,6 +8,18 @@ void CFLAModelSpecialFeaturesLoader::UpdateModelSpecialFeaturesFile()
 {
     std::string settingsPath = GAME_PATH((char*)"data/model_special_features.dat");
     std::string settingsPathTemp = settingsPath + ".bak";
+    auto isCommentOrEmpty = [](const std::string &value)
+        {
+            const auto firstNonWhitespace = value.find_first_not_of(" \t\r\n");
+            if (firstNonWhitespace == std::string::npos)
+            {
+                return true;
+            }
+
+            const std::string_view trimmed(value.c_str() + firstNonWhitespace, value.size() - firstNonWhitespace);
+
+            return trimmed.starts_with(";") || trimmed.starts_with("#") || trimmed.starts_with("//");
+        };
 
     if (!std::filesystem::exists(settingsPath))
     {
@@ -15,6 +27,7 @@ void CFLAModelSpecialFeaturesLoader::UpdateModelSpecialFeaturesFile()
     }
 
     std::unordered_set<std::string> linesToAdd(store.begin(), store.end());
+    std::unordered_set<std::string> writtenLines;
 
     std::ifstream in(settingsPath);
     std::ofstream out(settingsPathTemp);
@@ -38,19 +51,31 @@ void CFLAModelSpecialFeaturesLoader::UpdateModelSpecialFeaturesFile()
                 continue;
             }
 
-            if (linesToAdd.count(line))
+            if (isCommentOrEmpty(line))
+            {
+                out << line << "\n";
+                continue;
+            }
+
+            if (!linesToAdd.count(line))
             {
                 continue;
             }
 
-            out << line << "\n";
+            if (writtenLines.insert(line).second)
+            {
+                out << line << "\n";
+            }
         }
 
         out << marker << "\n";
 
         for (const auto &e : store)
         {
-            out << e << "\n";
+            if (writtenLines.insert(e).second)
+            {
+                out << e << "\n";
+            }
         }
 
         in.close();
@@ -72,6 +97,11 @@ void CFLAModelSpecialFeaturesLoader::Process()
     {
         UpdateModelSpecialFeaturesFile();
     }
+}
+
+void CFLAModelSpecialFeaturesLoader::AddLine(const std::string &line)
+{
+    store.push_back(line);
 }
 
 void CFLAModelSpecialFeaturesLoader::Parse(const std::string &line)
