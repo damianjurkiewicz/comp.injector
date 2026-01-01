@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "loader_core.h"
 #include "audio.h"
 #include "weapon_config.h"
@@ -62,65 +62,71 @@ CompInjector::CompInjector(HINSTANCE pluginHandle)
 
 void CompInjector::HandleVanillaDataFiles()
 {
-   
-
-    int flaAudioLoaderSetting = gConfig.ReadInteger("MAIN", "FLAAudioLoader", 1);
-    int flaWeaponConfigLoaderSetting = gConfig.ReadInteger("MAIN", "FLAWeaponConfigLoader", 1);
-
-    std::string settingsPath = GAME_PATH((char*)"data/gtasa_vehicleAudioSettings.cfg");
-    std::string backupPath = settingsPath + ".comp.injector.bak";
-    std::string weaponSettingsPath = GAME_PATH((char*)"data/gtasa_weapon_config.dat");
-    std::string weaponBackupPath = weaponSettingsPath + ".comp.injector.bak";
-
-
-    
-
-    if (flaAudioLoaderSetting == 1) 
-    {
-      
-        if (std::filesystem::exists(settingsPath) && !std::filesystem::exists(backupPath))
+    // Lambda function to handle the backup logic safely and cleanly (DRY principle)
+    auto checkAndBackup = [&](const char* iniKey, const char* relativePath, const char* loaderName)
         {
-            int result = MessageBox(NULL,
-                "Comp.Injector (FLAAudioLoader) is about to modify 'gtasa_vehicleAudioSettings.cfg' to add new vehicle sounds.\n\n"
-                "Do you want to create a one-time backup of the original file? (Recommended)",
-                MODNAME,
-                MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1);
-
-            if (result == IDYES)
+            // 1. Check if the option is enabled in the INI first.
+            // Jeśli opcja jest wyłączona (nie równa się 1), przerywamy natychmiast.
+            if (gConfig.ReadInteger("MAIN", iniKey, 0) != 1)
             {
-                try {
-                    std::filesystem::copy_file(settingsPath, backupPath, std::filesystem::copy_options::overwrite_existing);
-                }
-                catch (const std::exception& e) {
-                    MessageBox(NULL, ("Failed to create audio backup: " + std::string(e.what())).c_str(), MODNAME, MB_OK | MB_ICONERROR);
+                return;
+            }
+
+            std::string fullPath = GAME_PATH((char*)relativePath);
+            std::string backupPath = fullPath + ".back";
+
+            // 2. Check if the target file exists AND the backup does NOT exist yet.
+            // Logika: Pytamy o backup tylko wtedy, gdy plik istnieje i nie zrobiliśmy jeszcze jego kopii.
+            if (std::filesystem::exists(fullPath) && !std::filesystem::exists(backupPath))
+            {
+                std::string msg = "Comp.Injector (" + std::string(loaderName) + ") is about to modify '" + std::string(relativePath) + "'.\n\n"
+                    "Do you want to create a one-time backup of the original file? (Recommended)";
+
+                int result = MessageBox(NULL,
+                    msg.c_str(),
+                    MODNAME,
+                    MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1);
+
+                if (result == IDYES)
+                {
+                    try {
+                        std::filesystem::copy_file(fullPath, backupPath, std::filesystem::copy_options::overwrite_existing);
+                    }
+                    catch (const std::exception& e) {
+                        MessageBox(NULL, ("Failed to create backup for " + std::string(loaderName) + ": " + std::string(e.what())).c_str(), MODNAME, MB_OK | MB_ICONERROR);
+                    }
                 }
             }
-        }
-    }
+        };
 
-    if (flaWeaponConfigLoaderSetting == 1)
-    {
-        if (std::filesystem::exists(weaponSettingsPath) && !std::filesystem::exists(weaponBackupPath))
-        {
-            int result = MessageBox(NULL,
-                "Comp.Injector (FLAWeaponConfigLoader) is about to modify 'gtasa_weapon_config.dat' to add new weapon config entries.\n\n"
-                "Do you want to create a one-time backup of the original file? (Recommended)",
-                MODNAME,
-                MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1);
+    // --- Process Backups ---
 
-            if (result == IDYES)
-            {
-                try {
-                    std::filesystem::copy_file(weaponSettingsPath, weaponBackupPath, std::filesystem::copy_options::overwrite_existing);
-                }
-                catch (const std::exception& e) {
-                    MessageBox(NULL, ("Failed to create weapon config backup: " + std::string(e.what())).c_str(), MODNAME, MB_OK | MB_ICONERROR);
-                }
-            }
-        }
-    }
-  
-   
+    // 1. Audio
+    checkAndBackup("FLAAudioLoader", "data/gtasa_vehicleAudioSettings.cfg", "FLAAudioLoader");
+
+    // 2. Weapon Config
+    checkAndBackup("FLAWeaponConfigLoader", "data/gtasa_weapon_config.dat", "FLAWeaponConfigLoader");
+
+    // 3. Model Special Features
+    checkAndBackup("FLAModelSpecialFeaturesLoader", "data/model_special_features.dat", "FLAModelSpecialFeaturesLoader");
+
+    // 4. Train Type Carriages
+    checkAndBackup("FLATrainTypeCarriagesLoader", "data/gtasa_trainTypeCarriages.dat", "FLATrainTypeCarriagesLoader");
+
+    // 5. Radar Blip Sprites
+    checkAndBackup("FLARadarBlipSpriteFilenamesLoader", "data/gtasa_radarBlipSpriteFilenames.dat", "FLARadarBlipSpriteFilenamesLoader");
+
+    // 6. Melee Config (Standard vanilla file usually)
+    checkAndBackup("FLAMeleeConfigLoader", "data/gtasa_melee_config.dat", "FLAMeleeConfigLoader");
+
+    // 7. Cheat Strings
+    checkAndBackup("FLACheatStringsLoader", "data/cheatStrings.dat", "FLACheatStringsLoader");
+
+    // 8. Tracks Config (Standard vanilla file usually)
+    checkAndBackup("FLATracksConfigLoader", "data/Paths/gtasa_tracks_config.dat", "FLATracksConfigLoader");
+
+
+    // --- Original Modloader Traversal Logic ---
     std::function<void(const std::filesystem::path&)> traverse;
     traverse = [&](const std::filesystem::path& dir)
         {
@@ -140,10 +146,7 @@ void CompInjector::HandleVanillaDataFiles()
                 {
                     continue;
                 }
-                std::string fileName = entry.path().filename().string();
-
-
-              
+                // Dalsza logika traversal, jeśli potrzebna
             }
         };
 

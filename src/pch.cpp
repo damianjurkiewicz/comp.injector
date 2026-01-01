@@ -1,3 +1,3 @@
 #include "pch.h"
 
-CIniReader gConfig(MODNAME".ini");
+CIniReader gConfig("COMP.Injector.ini");
