@@ -388,13 +388,36 @@ void CInjConfigLoader::ParseFile(const std::filesystem::path& path)
             {
                 state = ParseState::KeyValue;
             }
+            else if (inBlock)
+            {
+                iniFile = trimmed;
+                section.clear();
+                state = ParseState::Section;
+            }
             break;
         case ParseState::KeyValue:
         {
+            std::string nextSection;
+            if (TryParseSection(trimmed, nextSection))
+            {
+                section = nextSection;
+                state = ParseState::KeyValue;
+                break;
+            }
+
             const auto equals = line.find('=');
             if (equals == std::string::npos)
             {
-                state = inBlock ? ParseState::IniFile : ParseState::Modifier;
+                if (inBlock)
+                {
+                    iniFile = trimmed;
+                    section.clear();
+                    state = ParseState::Section;
+                }
+                else
+                {
+                    state = ParseState::Modifier;
+                }
                 break;
             }
 
@@ -413,9 +436,16 @@ void CInjConfigLoader::ParseFile(const std::filesystem::path& path)
                     });
             }
 
-            iniFile.clear();
-            section.clear();
-            state = inBlock ? ParseState::IniFile : ParseState::Modifier;
+            if (inBlock)
+            {
+                state = ParseState::KeyValue;
+            }
+            else
+            {
+                iniFile.clear();
+                section.clear();
+                state = ParseState::Modifier;
+            }
             break;
         }
         }
