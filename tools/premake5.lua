@@ -59,7 +59,7 @@ project "$comp.injector"
     filter "configurations:Debug"
         symbols "On"
         links { 
-            "plugin_d.lib",
+            "plugin.lib",
         }
 
     filter "configurations:Release"
