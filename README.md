@@ -1,13 +1,13 @@
-# FastLoader – your best companion when adding new props or cars
+# Comp.Injector – your best companion when adding new props or cars
 
 ## 📖 Read Wiki
-- [Loading cargrp.dat](https://github.com/user-grinch/FastLoader/wiki/1.-cargrp.dat)
-- [Loading FLA Audio.dat](https://github.com/user-grinch/FastLoader/wiki/2.-gtasa_vehicleAudioSettings.cfg)
-- [Loading Object.dat](https://github.com/user-grinch/FastLoader/wiki/3.-Objects.dat)
+- [Loading cargrp.dat](https://github.com/user-grinch/comp.injector/wiki/1.-cargrp.dat)
+- [Loading FLA Audio.dat](https://github.com/user-grinch/comp.injector/wiki/2.-gtasa_vehicleAudioSettings.cfg)
+- [Loading Object.dat](https://github.com/user-grinch/comp.injector/wiki/3.-Objects.dat)
 
-## 🚘 What is FastLoader?
+## 🚘 What is Comp.Injector?
 
-**FastLoader** is a tiny `.asi` plugin that enhances GTA San Andreas modding by fixing what ModLoader doesn't:
+**Comp.Injector** is a tiny `.asi` plugin that enhances GTA San Andreas modding by fixing what ModLoader doesn't:
 
 - Merges difficult files like `cargrp.dat`, `object.dat`, and `gtasa_vehicleAudioSettings.cfg`
 - Prevents crashes and manual merging
@@ -31,14 +31,14 @@
 ## 📊 Installation
 
 1. Download and install the newest [Silent’s ASI Loader](https://gtaforums.com/topic/523982-relopensrc-silents-asi-loader/page/5/#findComment-1072560173)
-2. Place `$fastloader.asi` in your main GTA SA directory (where `gta_sa.exe` is)
-3. Drop regular text files with `*.fastloader` extension into ModLoader (just like you normally do for ModLoader .txt files) Check the [Wiki](https://github.com/user-grinch/FastLoader/wiki)
+2. Place `$comp.injector.asi` in your main GTA SA directory (where `gta_sa.exe` is)
+3. Drop regular text files with `*.comp.injector` extension into ModLoader (just like you normally do for ModLoader .txt files) Check the [Wiki](https://github.com/user-grinch/comp.injector/wiki)
 4. Launch the game – done!
 
 
 ## ⚙️ How It Works
 
-FastLoader is **guaranteed to run before other plugins**, including:
+Comp.Injector is **guaranteed to run before other plugins**, including:
 
 - ✅ ModLoader
 - ✅ Fastman92 Limit Adjuster 
@@ -46,9 +46,9 @@ FastLoader is **guaranteed to run before other plugins**, including:
 This ensures safe memory access and proper data injection, **without race conditions or file conflicts**.
 This behavior is made possible by the latest version of [Silent’s ASI Loader](https://gtaforums.com/topic/523982-relopensrc-silents-asi-loader/page/5/#findComment-1072560173), which guarantees load order of `.asi` plugins.
 
-🧹Plugin must be named `$fastloader.asi`, and make sure it's placed in the main GTA SA directory to ensure it loads early.
+🧹Plugin must be named `$comp.injector.asi`, and make sure it's placed in the main GTA SA directory to ensure it loads early.
 
-📚 File format details are available in the project [Wiki](https://github.com/user-grinch/FastLoader/wiki)
+📚 File format details are available in the project [Wiki](https://github.com/user-grinch/comp.injector/wiki)
 
 
 ### 🗺️ Fastaman Limit Adjuster - Best Settings
@@ -75,23 +75,23 @@ Comment out those lines with # to avoid conflicts and to grant a flawless stabil
 #MinLoadedGangVeh     = 4        # (1) Minimum of gang vehicle models loaded in memory.
 ```
 
-## ⚠️ Fastloader and `.dat` Files
+## ⚠️ Comp.Injector and `.dat` Files
 
-By default, **Fastloader** will ask whether to rename (disable) `cargrp.dat` and `object.dat` files:  
+By default, **Comp.Injector** will ask whether to rename (disable) `cargrp.dat` and `object.dat` files:  
 <img width="406" height="147" alt="image" src="https://github.com/user-attachments/assets/8f0e74e7-a8a7-4221-92ec-69f5bb2e6163" />
 
 It will append `.bak` to the file name:  
 <img width="178" height="120" alt="image" src="https://github.com/user-attachments/assets/0eee36ad-a553-4e71-936c-d6bdafca4673" />
 
 **Why does this happen?**  
-Fastloader starts **before** Modloader. Its task is to add new entries to the original `object.dat` or `cargrp.dat` files stored in `/data`.  
-The purpose of Fastloader is to load lines for newly added objects into `object.dat` or to add newly added cars into `cargrp.dat`.  
+Comp.Injector starts **before** Modloader. Its task is to add new entries to the original `object.dat` or `cargrp.dat` files stored in `/data`.  
+The purpose of Comp.Injector is to load lines for newly added objects into `object.dat` or to add newly added cars into `cargrp.dat`.  
 When you have any object.dat or cargrp.dat inside modloader folder, modloader.asi will load this data again. It will cause the crashes. 
 
-👉 If you just want to load an `object.dat` or `cargrp.dat` file, leave it in Modloader. Don’t use Fastloader for it.  
-👉 When adding new props (like *Project Props 3*) or cars with FLA, Fastloader is your friend.  
+👉 If you just want to load an `object.dat` or `cargrp.dat` file, leave it in Modloader. Don’t use Comp.Injector for it.  
+👉 When adding new props (like *Project Props 3*) or cars with FLA, Comp.Injector is your friend.  
 
-⚠️ **Important:** Fastloader will only load files with the `.fastloader` extension and only those which are implemented. It will **ignore all others**.
+⚠️ **Important:** Comp.Injector will only load files with the `.comp.injector` extension and only those which are implemented. It will **ignore all others**.
 
 
 ## 📄 License
@@ -103,4 +103,3 @@ MIT License – free to use, share, or modify. If you use this in your modpack, 
 
 - **Grinch** – Core loader logic, `.asi` development
 - **Damix** – Concept, design, testing, and integration ideas
-

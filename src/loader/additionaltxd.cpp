@@ -35,7 +35,7 @@ void CAdditionalTXD::hkAssignRemapTxd(const char *txdName, uint16_t txdId)
     }
 
     size_t len = strlen(txdName);
-    if (strlen(txdName) > 10 && isdigit(txdName[len - 1]) && !strncmp(txdName, "fastloader", 10))
+    if (strlen(txdName) > 13 && isdigit(txdName[len - 1]) && !strncmp(txdName, "comp.injector", 13))
     {
         TxdIDStore.push_back(txdId);
         CTxdStore::AddRef(txdId);

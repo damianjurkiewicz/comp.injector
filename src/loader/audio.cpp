@@ -29,7 +29,7 @@ void CFLAAudioLoader::UpdateAudioFile()
     {
         std::string line;
         bool ignoreLines = false;
-        const std::string marker = "; fastloader added vehicles";
+        const std::string marker = "; comp.injector added vehicles";
 
         while (getline(in, line))
         {
@@ -70,7 +70,7 @@ void CFLAAudioLoader::UpdateAudioFile()
 
         out << marker << "\n";
 
-        // Write all the lines currently loaded from .fastloader files
+        // Write all the lines currently loaded from .comp.injector files
         for (auto& e : store)
         {
             out << e << "\n";

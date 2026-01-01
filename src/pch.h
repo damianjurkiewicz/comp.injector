@@ -7,7 +7,7 @@
 #include "ini.hpp"
 
 // Customize these here
-#define MODNAME "$fastloader"
+#define MODNAME "$comp.injector"
 #define MODNAME_EXT MODNAME ".asi"
 
 extern CIniReader gConfig;

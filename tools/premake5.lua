@@ -1,6 +1,6 @@
 PSDK_DIR = os.getenv("PLUGIN_SDK_DIR")
 
-workspace "$fastloader"
+workspace "$comp.injector"
     configurations { 
         "Debug", 
         "Release" 
@@ -15,7 +15,7 @@ workspace "$fastloader"
     location "../build"
     targetdir "../build/bin"
 
-project "$fastloader"
+project "$comp.injector"
     kind "SharedLib"
     targetextension ".asi"
 
