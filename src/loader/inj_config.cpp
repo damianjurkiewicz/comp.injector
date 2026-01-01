@@ -113,6 +113,29 @@ namespace
         return false;
     }
 
+    void AppendMergeValue(std::string& target, const std::string& candidate)
+    {
+        if (candidate.empty())
+        {
+            return;
+        }
+
+        if (ContainsTokenSequence(target, candidate))
+        {
+            return;
+        }
+
+        if (!target.empty())
+        {
+            if (!std::isspace(static_cast<unsigned char>(target.back())))
+            {
+                target += " ";
+            }
+        }
+
+        target += candidate;
+    }
+
     bool TryParseSection(const std::string& line, std::string& section)
     {
         std::string trimmed = Trim(line);
@@ -383,9 +406,35 @@ void CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, 
         in.close();
     }
 
+    std::unordered_map<std::string, std::string> mergedValues;
+    mergedValues.reserve(entries.size());
+    for (const auto& entry : entries)
+    {
+        if (entry.modifier != InjModifier::Merge)
+        {
+            continue;
+        }
+
+        std::string key = entry.section + "\n" + entry.key;
+        AppendMergeValue(mergedValues[key], entry.value);
+    }
+
+    std::unordered_set<std::string> handledMergeKeys;
+    handledMergeKeys.reserve(mergedValues.size());
+
     bool modified = false;
     for (const auto& entry : entries)
     {
+        const bool isMerge = entry.modifier == InjModifier::Merge;
+        if (isMerge)
+        {
+            std::string mergeKey = entry.section + "\n" + entry.key;
+            if (handledMergeKeys.count(mergeKey) > 0)
+            {
+                continue;
+            }
+        }
+
         std::string sectionName = entry.section;
         size_t sectionStart = lines.size();
         size_t sectionEnd = lines.size();
@@ -465,23 +514,11 @@ void CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, 
             }
 
             std::string updatedValue = entry.value;
-            if (entry.modifier == InjModifier::Merge)
+            if (isMerge)
             {
-                if (ContainsTokenSequence(currentValue, entry.value))
-                {
-                    keyFound = true;
-                    break;
-                }
-
-                updatedValue = currentValue;
-                if (!updatedValue.empty() && !entry.value.empty())
-                {
-                    if (!std::isspace(static_cast<unsigned char>(updatedValue.back())))
-                    {
-                        updatedValue += " ";
-                    }
-                }
-                updatedValue += entry.value;
+                const std::string mergeKey = entry.section + "\n" + entry.key;
+                updatedValue = mergedValues[mergeKey];
+                handledMergeKeys.insert(mergeKey);
             }
 
             lines[i] = prefix + spacing + updatedValue;
@@ -493,8 +530,16 @@ void CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, 
         if (!keyFound)
         {
             size_t insertPos = sectionEnd;
+            std::string updatedValue = entry.value;
+            if (isMerge)
+            {
+                const std::string mergeKey = entry.section + "\n" + entry.key;
+                updatedValue = mergedValues[mergeKey];
+                handledMergeKeys.insert(mergeKey);
+            }
+
             lines.insert(lines.begin() + static_cast<std::vector<std::string>::difference_type>(insertPos),
-                entry.key + "=" + entry.value);
+                entry.key + "=" + updatedValue);
             modified = true;
         }
     }
@@ -502,6 +547,22 @@ void CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, 
     if (!modified)
     {
         return;
+    }
+
+    if (std::filesystem::exists(iniPath))
+    {
+        std::filesystem::path backupPath = iniPath;
+        backupPath += ".bak";
+        if (!std::filesystem::exists(backupPath))
+        {
+            try
+            {
+                std::filesystem::copy_file(iniPath, backupPath, std::filesystem::copy_options::overwrite_existing);
+            }
+            catch (const std::exception&)
+            {
+            }
+        }
     }
 
     std::ofstream out(iniPath, std::ios::trunc);
