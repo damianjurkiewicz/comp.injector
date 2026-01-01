@@ -14,9 +14,6 @@
     </ClInclude>
     <ClInclude Include="..\src\pch.h" />
     <ClInclude Include="..\src\tVehicleAudioSetting.h" />
-    <ClInclude Include="..\src\loader\default_audio_data.h">
-      <Filter>loader</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\dllmain.cpp" />

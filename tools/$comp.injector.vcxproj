@@ -105,7 +105,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\src\loader\audio.h" />
-    <ClInclude Include="..\src\loader\default_audio_data.h" />
     <ClInclude Include="..\src\loader\loader_core.h" />
     <ClInclude Include="..\src\pch.h" />
     <ClInclude Include="..\src\tVehicleAudioSetting.h" />

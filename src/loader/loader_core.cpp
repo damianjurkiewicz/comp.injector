@@ -52,37 +52,7 @@ void CompInjector::HandleVanillaDataFiles()
             }
         }
     }
-    else if (flaAudioLoaderSetting == -1) 
-    {
-       
-        try
-        {
-            
-            std::ofstream out(settingsPath, std::ios::binary);
-            if (!out.is_open())
-            {
-                throw std::runtime_error("Could not open settings file for writing.");
-            }
-
-            
-            out.write(reinterpret_cast<const char*>(DefaultAudioData::GtaSaVehicleAudioSettings_data),
-                DefaultAudioData::GtaSaVehicleAudioSettings_len);
-            out.close();
-
-           
-            gConfig.WriteInteger("MAIN", "FLAAudioLoader", 0);
-
-            MessageBox(NULL, "'gtasa_vehicleAudioSettings.cfg' has been reset to default.\n\nFLAAudioLoader has been set to 0 (Off) in your INI.", MODNAME, MB_OK | MB_ICONINFORMATION);
-        }
-        catch (const std::exception& e)
-        {
-            MessageBox(NULL, ("Failed to reset audio settings: " + std::string(e.what())).c_str(), MODNAME, MB_OK | MB_ICONERROR);
-        }
-        
-    }
-
-    
-
+  
    
     std::function<void(const std::filesystem::path&)> traverse;
     traverse = [&](const std::filesystem::path& dir)
