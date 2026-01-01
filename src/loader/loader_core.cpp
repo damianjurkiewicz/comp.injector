@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "loader_core.h"
 #include "audio.h"
+#include "weapon_config.h"
 #include "default_audio_data.h" 
 
 CompInjector::CompInjector(HINSTANCE pluginHandle)
@@ -15,6 +16,11 @@ CompInjector::CompInjector(HINSTANCE pluginHandle)
     {
         FLAAudioLoader.Process();
     }
+
+    if (gConfig.ReadInteger("MAIN", "FLAWeaponConfigLoader", 1) == 1)
+    {
+        FLAWeaponConfigLoader.Process();
+    }
 }
 
 
@@ -23,9 +29,12 @@ void CompInjector::HandleVanillaDataFiles()
    
 
     int flaAudioLoaderSetting = gConfig.ReadInteger("MAIN", "FLAAudioLoader", 1);
+    int flaWeaponConfigLoaderSetting = gConfig.ReadInteger("MAIN", "FLAWeaponConfigLoader", 1);
 
     std::string settingsPath = GAME_PATH((char*)"data/gtasa_vehicleAudioSettings.cfg");
     std::string backupPath = settingsPath + ".comp.injector.bak";
+    std::string weaponSettingsPath = GAME_PATH((char*)"data/gtasa_weapon_config.dat");
+    std::string weaponBackupPath = weaponSettingsPath + ".comp.injector.bak";
 
 
     
@@ -48,6 +57,28 @@ void CompInjector::HandleVanillaDataFiles()
                 }
                 catch (const std::exception& e) {
                     MessageBox(NULL, ("Failed to create audio backup: " + std::string(e.what())).c_str(), MODNAME, MB_OK | MB_ICONERROR);
+                }
+            }
+        }
+    }
+
+    if (flaWeaponConfigLoaderSetting == 1)
+    {
+        if (std::filesystem::exists(weaponSettingsPath) && !std::filesystem::exists(weaponBackupPath))
+        {
+            int result = MessageBox(NULL,
+                "Comp.Injector (FLAWeaponConfigLoader) is about to modify 'gtasa_weapon_config.dat' to add new weapon config entries.\n\n"
+                "Do you want to create a one-time backup of the original file? (Recommended)",
+                MODNAME,
+                MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1);
+
+            if (result == IDYES)
+            {
+                try {
+                    std::filesystem::copy_file(weaponSettingsPath, weaponBackupPath, std::filesystem::copy_options::overwrite_existing);
+                }
+                catch (const std::exception& e) {
+                    MessageBox(NULL, ("Failed to create weapon config backup: " + std::string(e.what())).c_str(), MODNAME, MB_OK | MB_ICONERROR);
                 }
             }
         }
@@ -124,6 +155,10 @@ void CompInjector::ParseModloader()
                         if (gConfig.ReadInteger("MAIN", "FLAAudioLoader", 1) == 1)
                         {
                             FLAAudioLoader.Parse(line);
+                        }
+                        if (gConfig.ReadInteger("MAIN", "FLAWeaponConfigLoader", 1) == 1)
+                        {
+                            FLAWeaponConfigLoader.Parse(line);
                         }
                     }
                     in.close();
