@@ -8,6 +8,7 @@
 #include "melee_config.h"
 #include "cheat_strings.h"
 #include "tracks_config.h"
+#include "inj_config.h"
 
 
 CompInjector::CompInjector(HINSTANCE pluginHandle)
@@ -17,6 +18,16 @@ CompInjector::CompInjector(HINSTANCE pluginHandle)
 
     HandleVanillaDataFiles();
     ParseModloader();
+    {
+        char modulePath[MAX_PATH] = {};
+        std::filesystem::path pluginDir;
+        if (GetModuleFileNameA(handle, modulePath, MAX_PATH) != 0)
+        {
+            pluginDir = std::filesystem::path(modulePath).parent_path();
+        }
+
+        InjConfigLoader.Process(pluginDir);
+    }
 
     if (gConfig.ReadInteger("MAIN", "FLAAudioLoader", 1) == 1)
     {
