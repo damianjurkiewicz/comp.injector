@@ -113,6 +113,37 @@ namespace
         return false;
     }
 
+    bool TryParseModifierLine(const std::string& line, InjModifier& modifier, bool& opensBlock)
+    {
+        std::string trimmed = Trim(line);
+        opensBlock = false;
+
+        if (trimmed.empty())
+        {
+            return false;
+        }
+
+        if (trimmed.back() == '{')
+        {
+            trimmed = Trim(trimmed.substr(0, trimmed.size() - 1));
+            opensBlock = true;
+        }
+
+        if (EqualsIgnoreCase(trimmed, "Replace"))
+        {
+            modifier = InjModifier::Replace;
+            return true;
+        }
+
+        if (EqualsIgnoreCase(trimmed, "Merge"))
+        {
+            modifier = InjModifier::Merge;
+            return true;
+        }
+
+        return false;
+    }
+
     void AppendMergeValue(std::string& target, const std::string& candidate)
     {
         if (candidate.empty())
@@ -311,6 +342,7 @@ void CInjConfigLoader::ParseFile(const std::filesystem::path& path)
 
     ParseState state = ParseState::Modifier;
     InjModifier modifier = InjModifier::Replace;
+    bool inBlock = false;
     std::string iniFile;
     std::string section;
 
@@ -328,20 +360,25 @@ void CInjConfigLoader::ParseFile(const std::filesystem::path& path)
             continue;
         }
 
+        if (inBlock && trimmed == "}")
+        {
+            inBlock = false;
+            state = ParseState::Modifier;
+            continue;
+        }
+
         switch (state)
         {
         case ParseState::Modifier:
-            if (EqualsIgnoreCase(trimmed, "Replace"))
+        {
+            bool opensBlock = false;
+            if (TryParseModifierLine(trimmed, modifier, opensBlock))
             {
-                modifier = InjModifier::Replace;
-                state = ParseState::IniFile;
-            }
-            else if (EqualsIgnoreCase(trimmed, "Merge"))
-            {
-                modifier = InjModifier::Merge;
+                inBlock = opensBlock;
                 state = ParseState::IniFile;
             }
             break;
+        }
         case ParseState::IniFile:
             iniFile = trimmed;
             state = ParseState::Section;
@@ -357,7 +394,7 @@ void CInjConfigLoader::ParseFile(const std::filesystem::path& path)
             const auto equals = line.find('=');
             if (equals == std::string::npos)
             {
-                state = ParseState::Modifier;
+                state = inBlock ? ParseState::IniFile : ParseState::Modifier;
                 break;
             }
 
@@ -378,7 +415,7 @@ void CInjConfigLoader::ParseFile(const std::filesystem::path& path)
 
             iniFile.clear();
             section.clear();
-            state = ParseState::Modifier;
+            state = inBlock ? ParseState::IniFile : ParseState::Modifier;
             break;
         }
         }
