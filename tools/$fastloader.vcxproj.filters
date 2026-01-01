@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="loader">
+      <UniqueIdentifier>{3CB0DB0B-2852-06E2-110D-1A36FD4D8D32}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\loader\audio.h">
+      <Filter>loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\loader\loader_core.h">
+      <Filter>loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\pch.h" />
+    <ClInclude Include="..\src\tVehicleAudioSetting.h" />
+    <ClInclude Include="..\src\loader\default_audio_data.h">
+      <Filter>loader</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\dllmain.cpp" />
+    <ClCompile Include="..\src\loader\audio.cpp">
+      <Filter>loader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\loader\loader_core.cpp">
+      <Filter>loader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\pch.cpp" />
+  </ItemGroup>
+</Project>
