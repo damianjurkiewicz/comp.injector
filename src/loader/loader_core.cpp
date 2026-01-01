@@ -239,7 +239,7 @@ void CompInjector::ParseModloader()
                     }
                     in.close();
                 }
-                else if (ext == ".dat")
+                else if (ext == ".dat" || ext == ".cfg")
                 {
                     std::ifstream in(path);
                     if (!in.is_open())
@@ -288,6 +288,27 @@ void CompInjector::ParseModloader()
                             if (gConfig.ReadInteger("MAIN", "FLATracksConfigLoader", 1) == 1)
                             {
                                 FLATracksConfigLoader.AddLine(line);
+                            }
+                        }
+                        else if (filename == "cheatStrings.dat")
+                        {
+                            if (gConfig.ReadInteger("MAIN", "FLACheatStringsLoader", 1) == 1)
+                            {
+                                FLACheatStringsLoader.AddLine(line);
+                            }
+                        }
+                        else if (filename == "gtasa_vehicleAudioSettings.cfg")
+                        {
+                            if (gConfig.ReadInteger("MAIN", "FLAAudioLoader", 1) == 1)
+                            {
+                                FLAAudioLoader.AddLine(line);
+                            }
+                        }
+                        else if (filename == "gtasa_weapon_config.dat")
+                        {
+                            if (gConfig.ReadInteger("MAIN", "FLAWeaponConfigLoader", 1) == 1)
+                            {
+                                FLAWeaponConfigLoader.AddLine(line);
                             }
                         }
                     }

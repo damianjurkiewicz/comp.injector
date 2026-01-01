@@ -89,6 +89,11 @@ void CFLACheatStringsLoader::Process()
     }
 }
 
+void CFLACheatStringsLoader::AddLine(const std::string &line)
+{
+    store.push_back(line);
+}
+
 void CFLACheatStringsLoader::Parse(const std::string &line)
 {
     const auto commaPos = line.find(',');

@@ -98,6 +98,11 @@ void CFLAAudioLoader::Process() {
     }
 }
 
+void CFLAAudioLoader::AddLine(const std::string &line)
+{
+    store.push_back(line);
+}
+
 void CFLAAudioLoader::Parse(const std::string& line)
 {
     // ... (This function is unchanged)

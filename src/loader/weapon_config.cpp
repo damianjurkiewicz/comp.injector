@@ -118,6 +118,11 @@ void CFLAWeaponConfigLoader::Process()
     }
 }
 
+void CFLAWeaponConfigLoader::AddLine(const std::string &line)
+{
+    store.push_back(line);
+}
+
 void CFLAWeaponConfigLoader::Parse(const std::string &line)
 {
     int index = 0;
