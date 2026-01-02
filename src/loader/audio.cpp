@@ -57,8 +57,8 @@ void CFLAAudioLoader::UpdateAudioFile()
     // --- START OF NEW LOGIC ---
     // 1. Create a "cache" (a hash set) of all lines we intend to add.
     //    This is very fast for lookups.
-    std::unordered_set<std::string> linesToAdd(store.begin(), store.end());
     std::unordered_set<std::string> writtenLines;
+    std::unordered_set<std::string> existingLines;
     // --- END OF NEW LOGIC ---
 
     std::ifstream in(basePath);
@@ -105,6 +105,7 @@ void CFLAAudioLoader::UpdateAudioFile()
 
             // 6. If none of the above, it's a clean, original line. Write it.
             out << line << "\n";
+            existingLines.insert(line);
         }
 
         // --- Now, we write the new content ---
@@ -114,6 +115,11 @@ void CFLAAudioLoader::UpdateAudioFile()
         // Write all the lines currently loaded from .comp.injector files
         for (auto& e : store)
         {
+            if (existingLines.count(e) > 0)
+            {
+                continue;
+            }
+
             if (writtenLines.insert(e).second)
             {
                 out << e << "\n";

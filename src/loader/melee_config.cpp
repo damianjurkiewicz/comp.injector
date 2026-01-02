@@ -52,8 +52,8 @@ void CFLAMeleeConfigLoader::UpdateMeleeConfigFile()
         return;
     }
 
-    std::unordered_set<std::string> linesToAdd(store.begin(), store.end());
     std::unordered_set<std::string> writtenLines;
+    std::unordered_set<std::string> existingLines;
 
     std::ifstream in(basePath);
     std::ofstream out(settingsPathTemp);
@@ -84,12 +84,18 @@ void CFLAMeleeConfigLoader::UpdateMeleeConfigFile()
             }
 
             out << line << "\n";
+            existingLines.insert(line);
         }
 
         out << marker << "\n";
 
         for (const auto &e : store)
         {
+            if (existingLines.count(e) > 0)
+            {
+                continue;
+            }
+
             if (writtenLines.insert(e).second)
             {
                 out << e << "\n";
