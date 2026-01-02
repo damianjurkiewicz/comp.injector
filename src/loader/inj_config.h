@@ -29,7 +29,7 @@ public:
 private:
     void CollectInjFiles(const std::filesystem::path& dir, std::vector<std::filesystem::path>& files) const;
     void ParseFile(const std::filesystem::path& path);
-    void ApplyEntriesToFile(const std::filesystem::path& iniPath, const std::vector<InjEntry>& entries) const;
+    bool ApplyEntriesToFile(const std::filesystem::path& iniPath, const std::vector<InjEntry>& entries) const;
     std::filesystem::path LocateIniFile(
         const InjEntry& entry,
         const std::filesystem::path& gameRoot,

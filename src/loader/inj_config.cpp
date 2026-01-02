@@ -18,7 +18,6 @@ namespace
         }
 
         const std::string_view trimmed(line.c_str() + firstNonWhitespace, line.size() - firstNonWhitespace);
-
         return trimmed.starts_with(";") || trimmed.starts_with("#") || trimmed.starts_with("//");
     }
 
@@ -45,11 +44,27 @@ namespace
         return value.substr(first);
     }
 
+    std::string ToLowerStr(std::string s)
+    {
+        for (char& c : s)
+        {
+            c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        }
+        return s;
+    }
+
+    bool IsHiddenFolder(const std::filesystem::path& p)
+    {
+        const std::string name = p.filename().string();
+        return !name.empty() && name[0] == '.';
+    }
+
     std::filesystem::path GetBasePathWithBackup(const std::filesystem::path& iniPath)
     {
         std::filesystem::path backupPath = iniPath;
         backupPath += ".back";
 
+        // Create baseline backup next to the edited ini, only once.
         if (std::filesystem::exists(iniPath) && !std::filesystem::exists(backupPath))
         {
             try
@@ -67,6 +82,62 @@ namespace
         }
 
         return iniPath;
+    }
+
+    // Restore *.ini from *.ini.back under a root folder (best-effort).
+    // This is the "nothing to update => reset to baseline" behavior.
+    void RestoreIniFilesFromBackups(const std::filesystem::path& root)
+    {
+        if (root.empty() || !std::filesystem::exists(root))
+        {
+            return;
+        }
+
+        std::filesystem::directory_options options = std::filesystem::directory_options::skip_permission_denied;
+
+        for (auto it = std::filesystem::recursive_directory_iterator(root, options);
+            it != std::filesystem::recursive_directory_iterator();
+            ++it)
+        {
+            if (it->is_directory())
+            {
+                if (IsHiddenFolder(it->path()))
+                {
+                    it.disable_recursion_pending();
+                }
+                continue;
+            }
+
+            if (!it->is_regular_file())
+            {
+                continue;
+            }
+
+            const std::filesystem::path backPath = it->path();
+
+            // Only handle "*.ini.back"
+            if (ToLowerStr(backPath.extension().string()) != ".back")
+            {
+                continue;
+            }
+
+            std::filesystem::path iniPath = backPath;
+            iniPath.replace_extension(); // drop ".back"
+
+            if (ToLowerStr(iniPath.extension().string()) != ".ini")
+            {
+                continue;
+            }
+
+            try
+            {
+                std::filesystem::copy_file(backPath, iniPath, std::filesystem::copy_options::overwrite_existing);
+            }
+            catch (const std::exception&)
+            {
+                // Intentionally ignore; restore is best-effort.
+            }
+        }
     }
 
     bool EqualsIgnoreCase(const std::string& left, const std::string& right)
@@ -175,12 +246,11 @@ namespace
         {
             if (it->is_directory())
             {
-                const std::string folderName = it->path().filename().string();
-                if (!folderName.empty() && folderName[0] == '.')
+                if (IsHiddenFolder(it->path()))
                 {
                     it.disable_recursion_pending();
-                    continue;
                 }
+                continue;
             }
 
             if (!it->is_regular_file())
@@ -203,10 +273,19 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
     entries.clear();
 
     std::vector<std::filesystem::path> injFiles;
-    CollectInjFiles(GAME_PATH((char*)"modloader"), injFiles);
+    const std::filesystem::path modloaderRoot = GAME_PATH((char*)"modloader");
+
+    CollectInjFiles(modloaderRoot, injFiles);
     if (!pluginDir.empty())
     {
         CollectInjFiles(pluginDir, injFiles);
+    }
+
+    // If there are no .inj files at all, restore every *.ini from *.ini.back in /modloader.
+    if (injFiles.empty())
+    {
+        RestoreIniFilesFromBackups(modloaderRoot);
+        return;
     }
 
     for (const auto& file : injFiles)
@@ -214,8 +293,10 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
         ParseFile(file);
     }
 
+    // If parsing produced no entries, treat it as "nothing to update" and restore.
     if (entries.empty())
     {
+        RestoreIniFilesFromBackups(modloaderRoot);
         return;
     }
 
@@ -224,7 +305,6 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
     std::unordered_map<std::filesystem::path, std::vector<InjEntry>> grouped;
 
     const std::filesystem::path gameRoot = GetGameRoot();
-    const std::filesystem::path modloaderRoot = GAME_PATH((char*)"modloader");
 
     for (const auto& entry : entries)
     {
@@ -237,9 +317,20 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
         grouped[iniPath].push_back(entry);
     }
 
+    bool didUpdateAnything = false;
+
     for (const auto& group : grouped)
     {
-        ApplyEntriesToFile(group.first, group.second);
+        if (ApplyEntriesToFile(group.first, group.second))
+        {
+            didUpdateAnything = true;
+        }
+    }
+
+    // If nothing was actually modified/written, restore baselines in /modloader.
+    if (!didUpdateAnything)
+    {
+        RestoreIniFilesFromBackups(modloaderRoot);
     }
 }
 
@@ -430,7 +521,7 @@ void CInjConfigLoader::ParseFile(const std::filesystem::path& path)
     in.close();
 }
 
-void CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, const std::vector<InjEntry>& entries) const
+bool CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, const std::vector<InjEntry>& entries) const
 {
     std::vector<std::string> lines;
     std::filesystem::path basePath = GetBasePathWithBackup(iniPath);
@@ -439,7 +530,7 @@ void CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, 
         std::ifstream in(basePath);
         if (!in.is_open())
         {
-            return;
+            return false;
         }
 
         std::string line;
@@ -582,21 +673,23 @@ void CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, 
                 handledMergeKeys.insert(mergeKey);
             }
 
-            lines.insert(lines.begin() + static_cast<std::vector<std::string>::difference_type>(insertPos),
-                entry.key + "=" + updatedValue);
+            lines.insert(
+                lines.begin() + static_cast<std::vector<std::string>::difference_type>(insertPos),
+                entry.key + "=" + updatedValue
+            );
             modified = true;
         }
     }
 
     if (!modified)
     {
-        return;
+        return false;
     }
 
     std::ofstream out(iniPath, std::ios::trunc);
     if (!out.is_open())
     {
-        return;
+        return false;
     }
 
     for (size_t i = 0; i < lines.size(); ++i)
@@ -609,6 +702,7 @@ void CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, 
     }
 
     out.close();
+    return true;
 }
 
 std::filesystem::path CInjConfigLoader::LocateIniFile(
