@@ -60,6 +60,66 @@ namespace
 
         return names;
     }
+
+    const std::unordered_set<std::string> kForceReplaceKeys = {
+        "MergeInteriorsWithCitiesAndZones",
+        "DontInheritBehaviour",
+        "MergeZonesWithCities",
+        "DisableOnMission",
+        "UseParentVoice",
+        "Voice",
+        "MergeZonesWithGlobal",
+        "ReplaceDriver",
+        "ReplacePassengers",
+        "UseOnlyGroups",
+        "DriverGroup1",
+        "DriverGroup2",
+        "DriverGroup3",
+        "DriverGroup4",
+        "DriverGroup5",
+        "DriverGroup6",
+        "DriverGroup7",
+        "DriverGroup8",
+        "DriverGroup9",
+        "PassengerGroup1",
+        "PassengerGroup2",
+        "PassengerGroup3",
+        "PassengerGroup4",
+        "PassengerGroup5",
+        "PassengerGroup6",
+        "PassengerGroup7",
+        "PassengerGroup8",
+        "PassengerGroup9",
+        "TuningChance",
+        "TuningFullBodykit",
+        "TrailersHealth",
+        "RecursiveVariations",
+        "UseParentVoices",
+        "EnableCloneRemover",
+        "CloneRemoverDisableOnMission",
+        "CloneRemoverIncludeVehicleOccupants",
+        "CloneRemoverSpawnDelay",
+        "ChangeCarGenerators",
+        "ChangeScriptedCars",
+        "DisablePayAndSpray",
+        "EnableLights",
+        "EnableSideMissions",
+        "EnableSiren",
+        "EnableSpecialFeatures",
+        "EnablePeds",
+        "EnableSpecialPeds",
+        "EnableVehicles",
+        "EnablePedWeapons",
+        "LoadSettingsImmediately",
+        "EnableStreamingFix",
+        "DisableKey",
+        "ReloadKey",
+        "EnableLog",
+        "LogJumps",
+        "ForceEnable",
+        "LoadStage",
+        "TrackReferenceCounts"
+    };
 }
 
 void CMvaLoader::Process()
@@ -391,6 +451,11 @@ void CMvaLoader::MergeIniData(IniData& target, const IniData& source) const
         for (const auto& kv : sectionPair.second)
         {
             auto& value = section[kv.first];
+            if (kForceReplaceKeys.count(kv.first) > 0)
+            {
+                value = kv.second;
+                continue;
+            }
             if (!value.empty())
             {
                 if (!std::isspace(static_cast<unsigned char>(value.back())))
