@@ -214,6 +214,12 @@ void CMvaLoader::Process()
         Logger.Log("MVA: original ini " + originalIni.string());
 
         std::filesystem::path basePath = GetBasePathWithBackup(originalIni);
+        if (!std::filesystem::exists(basePath))
+        {
+            Logger.Log("MVA: base ini not found for " + group.first);
+            continue;
+        }
+
         IniData finalData = ReadIniData(basePath);
         size_t index = 0;
         while (index < files.size())
