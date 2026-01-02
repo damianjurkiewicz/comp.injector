@@ -45,6 +45,24 @@ namespace
         return value.substr(first);
     }
 
+    bool EqualsIgnoreCase(const std::string& left, const std::string& right)
+    {
+        if (left.size() != right.size())
+        {
+            return false;
+        }
+
+        for (size_t i = 0; i < left.size(); ++i)
+        {
+            if (std::tolower(static_cast<unsigned char>(left[i])) != std::tolower(static_cast<unsigned char>(right[i])))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     bool TryParseModifierLine(const std::string& line, InjModifier& modifier, bool& opensBlock)
     {
         std::string trimmed = Trim(line);
@@ -104,24 +122,6 @@ namespace
 
         section = Trim(trimmed.substr(1, trimmed.size() - 2));
         return !section.empty();
-    }
-
-    bool EqualsIgnoreCase(const std::string& left, const std::string& right)
-    {
-        if (left.size() != right.size())
-        {
-            return false;
-        }
-
-        for (size_t i = 0; i < left.size(); ++i)
-        {
-            if (std::tolower(static_cast<unsigned char>(left[i])) != std::tolower(static_cast<unsigned char>(right[i])))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     std::filesystem::path GetGameRoot()
