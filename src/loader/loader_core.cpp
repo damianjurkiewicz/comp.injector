@@ -145,14 +145,8 @@ void CompInjector::ParseModloader()
                         {
                             continue;
                         }
-                        if (hasVehicleAudio)
-                        {
-                            FLAAudioLoader.Parse(line);
-                        }
-                        if (hasWeaponConfig)
-                        {
-                            FLAWeaponConfigLoader.Parse(line);
-                        }
+                        FLAAudioLoader.Parse(line);
+                        FLAWeaponConfigLoader.Parse(line);
                         if (hasModelSpecialFeatures)
                         {
                             FLAModelSpecialFeaturesLoader.Parse(line);
