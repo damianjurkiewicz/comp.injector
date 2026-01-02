@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "mva_loader.h"
+#include "logger.h"
 #include <fstream>
 
 CMvaLoader MvaLoader;
@@ -27,18 +28,25 @@ void CMvaLoader::Process()
     const std::filesystem::path modloaderRoot = GAME_PATH((char*)"modloader");
     if (modloaderRoot.empty() || !std::filesystem::exists(modloaderRoot))
     {
+        Logger.Log("MVA: modloader folder not found, skipping.");
         return;
     }
+
+    Logger.Log(std::string("MVA: scanning modloader at ") + modloaderRoot.string());
 
     std::vector<MvaFileEntry> entries;
     CollectMvaFiles(modloaderRoot, entries);
     if (entries.empty())
     {
+        Logger.Log("MVA: no .mva files found.");
         return;
     }
 
+    Logger.Log("MVA: found " + std::to_string(entries.size()) + " .mva files.");
+
     const std::filesystem::path modloaderIni = modloaderRoot / "modloader.ini";
     std::unordered_map<std::string, int> priorities = LoadPriorities(modloaderIni);
+    Logger.Log("MVA: loaded " + std::to_string(priorities.size()) + " mod priorities.");
 
     std::unordered_map<std::string, std::vector<MvaFileEntry>> grouped;
     for (auto& entry : entries)
@@ -72,9 +80,12 @@ void CMvaLoader::Process()
         grouped[targetPath].push_back(entry);
     }
 
+    Logger.Log("MVA: grouped into " + std::to_string(grouped.size()) + " target files.");
+
     for (auto& group : grouped)
     {
         auto& files = group.second;
+        Logger.Log("MVA: processing target " + group.first + " with " + std::to_string(files.size()) + " source files.");
         std::stable_sort(files.begin(), files.end(), [](const MvaFileEntry& left, const MvaFileEntry& right)
             {
                 if (left.priority != right.priority)
@@ -90,10 +101,12 @@ void CMvaLoader::Process()
         while (index < files.size())
         {
             const int priority = files[index].priority;
+            Logger.Log("MVA: merging priority " + std::to_string(priority));
             std::string mergedContent;
             while (index < files.size() && files[index].priority == priority)
             {
                 std::string content = ReadFileContents(files[index].sourcePath);
+                Logger.Log("MVA: reading " + files[index].sourcePath.string());
                 AppendFileContents(mergedContent, content);
                 ++index;
             }
@@ -103,12 +116,14 @@ void CMvaLoader::Process()
 
         if (finalContent.empty())
         {
+            Logger.Log("MVA: final content empty for " + group.first + ", skipping write.");
             continue;
         }
 
         std::filesystem::path targetPath(group.first);
         if (!targetPath.has_parent_path())
         {
+            Logger.Log("MVA: invalid target path " + group.first);
             continue;
         }
 
@@ -116,11 +131,13 @@ void CMvaLoader::Process()
         std::ofstream out(targetPath, std::ios::binary | std::ios::trunc);
         if (!out.is_open())
         {
+            Logger.Log("MVA: failed to write " + group.first);
             continue;
         }
 
         out.write(finalContent.data(), static_cast<std::streamsize>(finalContent.size()));
         out.close();
+        Logger.Log("MVA: wrote " + group.first);
     }
 }
 
@@ -169,6 +186,7 @@ void CMvaLoader::CollectMvaFiles(const std::filesystem::path& modloaderRoot, std
                         continue;
                     }
 
+                    Logger.Log("MVA: found " + it->path().string() + " in mod " + modName);
                     entries.push_back({ it->path(), modName, 0 });
                 }
             }
@@ -181,18 +199,21 @@ std::unordered_map<std::string, int> CMvaLoader::LoadPriorities(const std::files
     std::unordered_map<std::string, int> priorities;
     if (!std::filesystem::exists(modloaderIni))
     {
+        Logger.Log("MVA: modloader.ini not found, default priorities assumed.");
         return priorities;
     }
 
     linb::ini ini;
     if (!ini.load_file(modloaderIni.string()))
     {
+        Logger.Log("MVA: failed to read modloader.ini.");
         return priorities;
     }
 
     auto section = ini.find("Profiles.Default.Priority");
     if (section == ini.end())
     {
+        Logger.Log("MVA: Profiles.Default.Priority section not found.");
         return priorities;
     }
 
@@ -205,6 +226,7 @@ std::unordered_map<std::string, int> CMvaLoader::LoadPriorities(const std::files
         }
         catch (const std::exception&)
         {
+            Logger.Log("MVA: invalid priority for mod " + kv.first);
             continue;
         }
     }

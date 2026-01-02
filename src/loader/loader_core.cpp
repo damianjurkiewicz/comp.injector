@@ -10,6 +10,7 @@
 #include "tracks_config.h"
 #include "inj_config.h"
 #include "mva_loader.h"
+#include "logger.h"
 
 
 CompInjector::CompInjector(HINSTANCE pluginHandle)
@@ -25,6 +26,11 @@ CompInjector::CompInjector(HINSTANCE pluginHandle)
         if (GetModuleFileNameA(handle, modulePath, MAX_PATH) != 0)
         {
             pluginDir = std::filesystem::path(modulePath).parent_path();
+        }
+
+        if (!pluginDir.empty())
+        {
+            Logger.Init(pluginDir / "comp.injector.log");
         }
 
         InjConfigLoader.Process(pluginDir);
