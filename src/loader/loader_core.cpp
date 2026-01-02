@@ -11,6 +11,7 @@
 #include "inj_config.h"
 #include "mva_loader.h"
 #include "logger.h"
+#include <unordered_set>
 
 
 CompInjector::CompInjector(HINSTANCE pluginHandle)
@@ -63,6 +64,45 @@ void CompInjector::ParseModloader()
             return trimmed.starts_with(";") || trimmed.starts_with("#") || trimmed.starts_with("//");
         };
 
+    std::unordered_set<std::string> modloaderFiles;
+    {
+        std::filesystem::path modloaderRoot = GAME_PATH((char*)"modloader");
+        if (std::filesystem::exists(modloaderRoot))
+        {
+            std::filesystem::directory_options options = std::filesystem::directory_options::skip_permission_denied;
+            for (auto it = std::filesystem::recursive_directory_iterator(modloaderRoot, options);
+                it != std::filesystem::recursive_directory_iterator();
+                ++it)
+            {
+                if (it->is_directory())
+                {
+                    std::string folderName = it->path().filename().string();
+                    if (!folderName.empty() && folderName[0] == '.')
+                    {
+                        it.disable_recursion_pending();
+                    }
+                    continue;
+                }
+
+                if (!it->is_regular_file())
+                {
+                    continue;
+                }
+
+                modloaderFiles.insert(it->path().filename().string());
+            }
+        }
+    }
+
+    const bool hasVehicleAudio = modloaderFiles.count("gtasa_vehicleAudioSettings.cfg") > 0;
+    const bool hasWeaponConfig = modloaderFiles.count("gtasa_weapon_config.dat") > 0;
+    const bool hasModelSpecialFeatures = modloaderFiles.count("model_special_features.dat") > 0;
+    const bool hasTrainTypeCarriages = modloaderFiles.count("gtasa_trainTypeCarriages.dat") > 0;
+    const bool hasMeleeConfig = modloaderFiles.count("gtasa_melee_config.dat") > 0;
+    const bool hasCheatStrings = modloaderFiles.count("cheatStrings.dat") > 0;
+    const bool hasRadarBlipSprites = modloaderFiles.count("gtasa_radarBlipSpriteFilenames.dat") > 0;
+    const bool hasTracksConfig = modloaderFiles.count("gtasa_tracks_config.dat") > 0;
+
     std::function<void(const std::filesystem::path&)> traverse;
     traverse = [&](const std::filesystem::path& dir)
         {
@@ -96,14 +136,38 @@ void CompInjector::ParseModloader()
                         {
                             continue;
                         }
-                        FLAAudioLoader.Parse(line);
-                        FLAWeaponConfigLoader.Parse(line);
-                        FLAModelSpecialFeaturesLoader.Parse(line);
-                        FLATrainTypeCarriagesLoader.Parse(line);
-                        FLARadarBlipSpriteFilenamesLoader.Parse(line);
-                        FLAMeleeConfigLoader.Parse(line);
-                        FLACheatStringsLoader.Parse(line);
-                        FLATracksConfigLoader.Parse(line);
+                        if (hasVehicleAudio)
+                        {
+                            FLAAudioLoader.Parse(line);
+                        }
+                        if (hasWeaponConfig)
+                        {
+                            FLAWeaponConfigLoader.Parse(line);
+                        }
+                        if (hasModelSpecialFeatures)
+                        {
+                            FLAModelSpecialFeaturesLoader.Parse(line);
+                        }
+                        if (hasTrainTypeCarriages)
+                        {
+                            FLATrainTypeCarriagesLoader.Parse(line);
+                        }
+                        if (hasRadarBlipSprites)
+                        {
+                            FLARadarBlipSpriteFilenamesLoader.Parse(line);
+                        }
+                        if (hasMeleeConfig)
+                        {
+                            FLAMeleeConfigLoader.Parse(line);
+                        }
+                        if (hasCheatStrings)
+                        {
+                            FLACheatStringsLoader.Parse(line);
+                        }
+                        if (hasTracksConfig)
+                        {
+                            FLATracksConfigLoader.Parse(line);
+                        }
                     }
                     in.close();
                 }
