@@ -8,7 +8,6 @@ private:
 
     bool IsPluginNameValid();
     void ParseModloader();
-    void HandleVanillaDataFiles(); 
 
 public:
     CompInjector(HINSTANCE pluginHandle);

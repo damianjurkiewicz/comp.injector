@@ -7,6 +7,8 @@
 CFLACheatStringsLoader FLACheatStringsLoader;
 
 namespace {
+const char* kMarker = "; comp.injector added cheatStrings";
+
 std::string TrimCopy(const std::string &value)
 {
     const auto start = value.find_first_not_of(" \t\r\n");
@@ -17,12 +19,55 @@ std::string TrimCopy(const std::string &value)
     const auto end = value.find_last_not_of(" \t\r\n");
     return value.substr(start, end - start + 1);
 }
+
+std::string GetBasePathWithBackup(const std::string &settingsPath)
+{
+    std::string backupPath = settingsPath + ".back";
+    if (std::filesystem::exists(settingsPath) && !std::filesystem::exists(backupPath))
+    {
+        try
+        {
+            std::filesystem::copy_file(settingsPath, backupPath, std::filesystem::copy_options::overwrite_existing);
+        }
+        catch (const std::exception &)
+        {
+        }
+    }
+
+    if (std::filesystem::exists(backupPath))
+    {
+        return backupPath;
+    }
+
+    return settingsPath;
+}
+
+bool HasMarker(const std::string &settingsPath)
+{
+    std::ifstream in(settingsPath);
+    if (!in.is_open())
+    {
+        return false;
+    }
+
+    std::string line;
+    while (getline(in, line))
+    {
+        if (line.find(kMarker) != std::string::npos)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
 }
 
 void CFLACheatStringsLoader::UpdateCheatStringsFile()
 {
     std::string settingsPath = GAME_PATH((char*)"data/cheatStrings.dat");
-    std::string settingsPathTemp = settingsPath + ".bak";
+    std::string settingsPathTemp = settingsPath + ".tmp";
+    std::string basePath = GetBasePathWithBackup(settingsPath);
     auto isCommentOrEmpty = [](const std::string &value)
         {
             const auto firstNonWhitespace = value.find_first_not_of(" \t\r\n");
@@ -36,26 +81,42 @@ void CFLACheatStringsLoader::UpdateCheatStringsFile()
             return trimmed.starts_with(";") || trimmed.starts_with("#") || trimmed.starts_with("//");
         };
 
-    if (!std::filesystem::exists(settingsPath))
+    if (!std::filesystem::exists(basePath))
     {
         return;
     }
 
-    std::unordered_set<std::string> linesToAdd(store.begin(), store.end());
-    std::unordered_set<std::string> writtenLines;
+    if (store.empty())
+    {
+        std::ifstream in(basePath, std::ios::binary);
+        std::ofstream out(settingsPathTemp, std::ios::binary | std::ios::trunc);
+        if (!in.is_open() || !out.is_open())
+        {
+            return;
+        }
 
-    std::ifstream in(settingsPath);
+        out << in.rdbuf();
+        in.close();
+        out.close();
+
+        std::filesystem::remove(settingsPath);
+        std::filesystem::rename(settingsPathTemp, settingsPath);
+        return;
+    }
+
+    std::unordered_set<std::string> writtenLines;
+    std::unordered_set<std::string> existingLines;
+
+    std::ifstream in(basePath);
     std::ofstream out(settingsPathTemp);
 
     if (in.is_open() && out.is_open())
     {
         std::string line;
         bool ignoreLines = false;
-        const std::string marker = "; comp.injector added cheatStrings";
-
         while (getline(in, line))
         {
-            if (line.find(marker) != std::string::npos)
+            if (line.find(kMarker) != std::string::npos)
             {
                 ignoreLines = true;
                 continue;
@@ -72,21 +133,19 @@ void CFLACheatStringsLoader::UpdateCheatStringsFile()
                 continue;
             }
 
-            if (!linesToAdd.count(line))
+            out << line << "\n";
+            existingLines.insert(line);
+        }
+
+        out << kMarker << "\n";
+
+        for (const auto &e : store)
+        {
+            if (existingLines.count(e) > 0)
             {
                 continue;
             }
 
-            if (writtenLines.insert(line).second)
-            {
-                out << line << "\n";
-            }
-        }
-
-        out << marker << "\n";
-
-        for (const auto &e : store)
-        {
             if (writtenLines.insert(e).second)
             {
                 out << e << "\n";
@@ -108,10 +167,12 @@ void CFLACheatStringsLoader::UpdateCheatStringsFile()
 
 void CFLACheatStringsLoader::Process()
 {
-    if (!store.empty())
+    if (store.empty() && !HasMarker(GAME_PATH((char*)"data/cheatStrings.dat")))
     {
-        UpdateCheatStringsFile();
+        return;
     }
+
+    UpdateCheatStringsFile();
 }
 
 void CFLACheatStringsLoader::AddLine(const std::string &line)

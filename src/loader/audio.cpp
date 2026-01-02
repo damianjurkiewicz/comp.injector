@@ -5,11 +5,59 @@
 
 CFLAAudioLoader FLAAudioLoader;
 
+namespace
+{
+    const char* kMarker = "; comp.injector added vehicles";
+
+    std::string GetBasePathWithBackup(const std::string& settingsPath)
+    {
+        std::string backupPath = settingsPath + ".back";
+        if (std::filesystem::exists(settingsPath) && !std::filesystem::exists(backupPath))
+        {
+            try
+            {
+                std::filesystem::copy_file(settingsPath, backupPath, std::filesystem::copy_options::overwrite_existing);
+            }
+            catch (const std::exception&)
+            {
+            }
+        }
+
+        if (std::filesystem::exists(backupPath))
+        {
+            return backupPath;
+        }
+
+        return settingsPath;
+    }
+
+    bool HasMarker(const std::string& settingsPath)
+    {
+        std::ifstream in(settingsPath);
+        if (!in.is_open())
+        {
+            return false;
+        }
+
+        std::string line;
+        while (getline(in, line))
+        {
+            if (line.find(kMarker) != std::string::npos)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
 // <<< MODIFIED FUNCTION TO REBUILD AND REMOVE DUPLICATES >>>
 void CFLAAudioLoader::UpdateAudioFile()
 {
     std::string settingsPath = GAME_PATH((char*)"data/gtasa_vehicleAudioSettings.cfg");
-    std::string settingsPathTemp = settingsPath + ".bak"; // This is just a temporary file
+    std::string settingsPathTemp = settingsPath + ".tmp"; // This is just a temporary file
+    std::string basePath = GetBasePathWithBackup(settingsPath);
     auto isCommentOrEmpty = [](const std::string &value)
         {
             const auto firstNonWhitespace = value.find_first_not_of(" \t\r\n");
@@ -23,31 +71,47 @@ void CFLAAudioLoader::UpdateAudioFile()
             return trimmed.starts_with(";") || trimmed.starts_with("#") || trimmed.starts_with("//");
         };
 
-    if (!std::filesystem::exists(settingsPath))
+    if (!std::filesystem::exists(basePath))
     {
+        return;
+    }
+
+    if (store.empty())
+    {
+        std::ifstream in(basePath, std::ios::binary);
+        std::ofstream out(settingsPathTemp, std::ios::binary | std::ios::trunc);
+        if (!in.is_open() || !out.is_open())
+        {
+            return;
+        }
+
+        out << in.rdbuf();
+        in.close();
+        out.close();
+
+        std::filesystem::remove(settingsPath);
+        std::filesystem::rename(settingsPathTemp, settingsPath);
         return;
     }
 
     // --- START OF NEW LOGIC ---
     // 1. Create a "cache" (a hash set) of all lines we intend to add.
     //    This is very fast for lookups.
-    std::unordered_set<std::string> linesToAdd(store.begin(), store.end());
     std::unordered_set<std::string> writtenLines;
+    std::unordered_set<std::string> existingLines;
     // --- END OF NEW LOGIC ---
 
-    std::ifstream in(settingsPath);
+    std::ifstream in(basePath);
     std::ofstream out(settingsPathTemp);
 
     if (in.is_open() && out.is_open())
     {
         std::string line;
         bool ignoreLines = false;
-        const std::string marker = "; comp.injector added vehicles";
-
         while (getline(in, line))
         {
             // 2. Check for our old marker
-            if (line.find(marker) != std::string::npos)
+            if (line.find(kMarker) != std::string::npos)
             {
                 ignoreLines = true; // Start ignoring all lines after this
                 continue;
@@ -75,28 +139,25 @@ void CFLAAudioLoader::UpdateAudioFile()
                 continue;
             }
 
-            if (!linesToAdd.count(line))
-            {
-                continue;
-            }
-
-            if (!writtenLines.insert(line).second)
-            {
-                continue;
-            }
             // --- END OF NEW LOGIC ---
 
             // 6. If none of the above, it's a clean, original line. Write it.
             out << line << "\n";
+            existingLines.insert(line);
         }
 
         // --- Now, we write the new content ---
 
-        out << marker << "\n";
+        out << kMarker << "\n";
 
         // Write all the lines currently loaded from .comp.injector files
         for (auto& e : store)
         {
+            if (existingLines.count(e) > 0)
+            {
+                continue;
+            }
+
             if (writtenLines.insert(e).second)
             {
                 out << e << "\n";
@@ -120,9 +181,12 @@ void CFLAAudioLoader::UpdateAudioFile()
 
 void CFLAAudioLoader::Process() {
     // ... (This function is unchanged)
-    if (!store.empty()) {
-        UpdateAudioFile();
+    if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_vehicleAudioSettings.cfg")))
+    {
+        return;
     }
+
+    UpdateAudioFile();
 }
 
 void CFLAAudioLoader::AddLine(const std::string &line)
