@@ -3,6 +3,8 @@
 #include "logger.h"
 #include <fstream>
 #include <sstream>
+#include <unordered_map>
+#include <unordered_set>
 
 CMvaLoader MvaLoader;
 
