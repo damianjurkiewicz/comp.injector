@@ -64,6 +64,15 @@ void CompInjector::ParseModloader()
             return trimmed.starts_with(";") || trimmed.starts_with("#") || trimmed.starts_with("//");
         };
 
+    auto toLower = [](std::string value)
+        {
+            for (char &ch : value)
+            {
+                ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+            }
+            return value;
+        };
+
     std::unordered_set<std::string> modloaderFiles;
     {
         std::filesystem::path modloaderRoot = GAME_PATH((char*)"modloader");
@@ -89,18 +98,18 @@ void CompInjector::ParseModloader()
                     continue;
                 }
 
-                modloaderFiles.insert(it->path().filename().string());
+                modloaderFiles.insert(toLower(it->path().filename().string()));
             }
         }
     }
 
-    const bool hasVehicleAudio = modloaderFiles.count("gtasa_vehicleAudioSettings.cfg") > 0;
+    const bool hasVehicleAudio = modloaderFiles.count("gtasa_vehicleaudiosettings.cfg") > 0;
     const bool hasWeaponConfig = modloaderFiles.count("gtasa_weapon_config.dat") > 0;
     const bool hasModelSpecialFeatures = modloaderFiles.count("model_special_features.dat") > 0;
-    const bool hasTrainTypeCarriages = modloaderFiles.count("gtasa_trainTypeCarriages.dat") > 0;
+    const bool hasTrainTypeCarriages = modloaderFiles.count("gtasa_traintypecarriages.dat") > 0;
     const bool hasMeleeConfig = modloaderFiles.count("gtasa_melee_config.dat") > 0;
-    const bool hasCheatStrings = modloaderFiles.count("cheatStrings.dat") > 0;
-    const bool hasRadarBlipSprites = modloaderFiles.count("gtasa_radarBlipSpriteFilenames.dat") > 0;
+    const bool hasCheatStrings = modloaderFiles.count("cheatstrings.dat") > 0;
+    const bool hasRadarBlipSprites = modloaderFiles.count("gtasa_radarblipspritefilenames.dat") > 0;
     const bool hasTracksConfig = modloaderFiles.count("gtasa_tracks_config.dat") > 0;
 
     std::function<void(const std::filesystem::path&)> traverse;
