@@ -82,8 +82,8 @@ CompInjector::CompInjector(HINSTANCE pluginHandle)
 
 void CompInjector::HandleVanillaDataFiles()
 {
-    // Lambda function to handle the backup logic safely and cleanly (DRY principle)
-    auto checkAndBackup = [&](const char* iniKey, const char* relativePath, const char* loaderName)
+    // Lambda function to handle one-time .back backups (DRY principle)
+    auto checkAndBackup = [&](const char* iniKey, const char* relativePath)
         {
             // 1. Check if the option is enabled in the INI first.
             // Jeśli opcja jest wyłączona (nie równa się 1), przerywamy natychmiast.
@@ -99,22 +99,12 @@ void CompInjector::HandleVanillaDataFiles()
             // Logika: Pytamy o backup tylko wtedy, gdy plik istnieje i nie zrobiliśmy jeszcze jego kopii.
             if (std::filesystem::exists(fullPath) && !std::filesystem::exists(backupPath))
             {
-                std::string msg = "Comp.Injector (" + std::string(loaderName) + ") is about to modify '" + std::string(relativePath) + "'.\n\n"
-                    "Do you want to create a one-time backup of the original file? (Recommended)";
-
-                int result = MessageBox(NULL,
-                    msg.c_str(),
-                    MODNAME,
-                    MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON1);
-
-                if (result == IDYES)
+                try
                 {
-                    try {
-                        std::filesystem::copy_file(fullPath, backupPath, std::filesystem::copy_options::overwrite_existing);
-                    }
-                    catch (const std::exception& e) {
-                        MessageBox(NULL, ("Failed to create backup for " + std::string(loaderName) + ": " + std::string(e.what())).c_str(), MODNAME, MB_OK | MB_ICONERROR);
-                    }
+                    std::filesystem::copy_file(fullPath, backupPath, std::filesystem::copy_options::overwrite_existing);
+                }
+                catch (const std::exception&)
+                {
                 }
             }
         };
@@ -122,28 +112,28 @@ void CompInjector::HandleVanillaDataFiles()
     // --- Process Backups ---
 
     // 1. Audio
-    checkAndBackup("FLAAudioLoader", "data/gtasa_vehicleAudioSettings.cfg", "FLAAudioLoader");
+    checkAndBackup("FLAAudioLoader", "data/gtasa_vehicleAudioSettings.cfg");
 
     // 2. Weapon Config
-    checkAndBackup("FLAWeaponConfigLoader", "data/gtasa_weapon_config.dat", "FLAWeaponConfigLoader");
+    checkAndBackup("FLAWeaponConfigLoader", "data/gtasa_weapon_config.dat");
 
     // 3. Model Special Features
-    checkAndBackup("FLAModelSpecialFeaturesLoader", "data/model_special_features.dat", "FLAModelSpecialFeaturesLoader");
+    checkAndBackup("FLAModelSpecialFeaturesLoader", "data/model_special_features.dat");
 
     // 4. Train Type Carriages
-    checkAndBackup("FLATrainTypeCarriagesLoader", "data/gtasa_trainTypeCarriages.dat", "FLATrainTypeCarriagesLoader");
+    checkAndBackup("FLATrainTypeCarriagesLoader", "data/gtasa_trainTypeCarriages.dat");
 
     // 5. Radar Blip Sprites
-    checkAndBackup("FLARadarBlipSpriteFilenamesLoader", "data/gtasa_radarBlipSpriteFilenames.dat", "FLARadarBlipSpriteFilenamesLoader");
+    checkAndBackup("FLARadarBlipSpriteFilenamesLoader", "data/gtasa_radarBlipSpriteFilenames.dat");
 
     // 6. Melee Config (Standard vanilla file usually)
-    checkAndBackup("FLAMeleeConfigLoader", "data/gtasa_melee_config.dat", "FLAMeleeConfigLoader");
+    checkAndBackup("FLAMeleeConfigLoader", "data/gtasa_melee_config.dat");
 
     // 7. Cheat Strings
-    checkAndBackup("FLACheatStringsLoader", "data/cheatStrings.dat", "FLACheatStringsLoader");
+    checkAndBackup("FLACheatStringsLoader", "data/cheatStrings.dat");
 
     // 8. Tracks Config (Standard vanilla file usually)
-    checkAndBackup("FLATracksConfigLoader", "data/Paths/gtasa_tracks_config.dat", "FLATracksConfigLoader");
+    checkAndBackup("FLATracksConfigLoader", "data/Paths/gtasa_tracks_config.dat");
 
 
     // --- Original Modloader Traversal Logic ---

@@ -5,11 +5,37 @@
 
 CFLAAudioLoader FLAAudioLoader;
 
+namespace
+{
+    std::string GetBasePathWithBackup(const std::string& settingsPath)
+    {
+        std::string backupPath = settingsPath + ".back";
+        if (std::filesystem::exists(settingsPath) && !std::filesystem::exists(backupPath))
+        {
+            try
+            {
+                std::filesystem::copy_file(settingsPath, backupPath, std::filesystem::copy_options::overwrite_existing);
+            }
+            catch (const std::exception&)
+            {
+            }
+        }
+
+        if (std::filesystem::exists(backupPath))
+        {
+            return backupPath;
+        }
+
+        return settingsPath;
+    }
+}
+
 // <<< MODIFIED FUNCTION TO REBUILD AND REMOVE DUPLICATES >>>
 void CFLAAudioLoader::UpdateAudioFile()
 {
     std::string settingsPath = GAME_PATH((char*)"data/gtasa_vehicleAudioSettings.cfg");
-    std::string settingsPathTemp = settingsPath + ".bak"; // This is just a temporary file
+    std::string settingsPathTemp = settingsPath + ".tmp"; // This is just a temporary file
+    std::string basePath = GetBasePathWithBackup(settingsPath);
     auto isCommentOrEmpty = [](const std::string &value)
         {
             const auto firstNonWhitespace = value.find_first_not_of(" \t\r\n");
@@ -23,7 +49,7 @@ void CFLAAudioLoader::UpdateAudioFile()
             return trimmed.starts_with(";") || trimmed.starts_with("#") || trimmed.starts_with("//");
         };
 
-    if (!std::filesystem::exists(settingsPath))
+    if (!std::filesystem::exists(basePath))
     {
         return;
     }
@@ -35,7 +61,7 @@ void CFLAAudioLoader::UpdateAudioFile()
     std::unordered_set<std::string> writtenLines;
     // --- END OF NEW LOGIC ---
 
-    std::ifstream in(settingsPath);
+    std::ifstream in(basePath);
     std::ofstream out(settingsPathTemp);
 
     if (in.is_open() && out.is_open())

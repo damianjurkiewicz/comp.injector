@@ -63,6 +63,29 @@ namespace
         return names;
     }
 
+    std::filesystem::path GetBasePathWithBackup(const std::filesystem::path& iniPath)
+    {
+        std::filesystem::path backupPath = iniPath;
+        backupPath += ".back";
+        if (std::filesystem::exists(iniPath) && !std::filesystem::exists(backupPath))
+        {
+            try
+            {
+                std::filesystem::copy_file(iniPath, backupPath, std::filesystem::copy_options::overwrite_existing);
+            }
+            catch (const std::exception&)
+            {
+            }
+        }
+
+        if (std::filesystem::exists(backupPath))
+        {
+            return backupPath;
+        }
+
+        return iniPath;
+    }
+
     const std::unordered_set<std::string> kForceReplaceKeys = {
         "MergeInteriorsWithCitiesAndZones",
         "DontInheritBehaviour",
@@ -190,7 +213,8 @@ void CMvaLoader::Process()
 
         Logger.Log("MVA: original ini " + originalIni.string());
 
-        IniData finalData = ReadIniData(originalIni);
+        std::filesystem::path basePath = GetBasePathWithBackup(originalIni);
+        IniData finalData = ReadIniData(basePath);
         size_t index = 0;
         while (index < files.size())
         {
@@ -219,19 +243,6 @@ void CMvaLoader::Process()
         {
             Logger.Log("MVA: no ini data to write for " + group.first);
             continue;
-        }
-
-        std::filesystem::path backupPath = originalIni;
-        backupPath += ".back";
-        if (!std::filesystem::exists(backupPath))
-        {
-            try
-            {
-                std::filesystem::copy_file(originalIni, backupPath, std::filesystem::copy_options::overwrite_existing);
-            }
-            catch (const std::exception&)
-            {
-            }
         }
 
         std::ofstream out(originalIni, std::ios::binary | std::ios::trunc);

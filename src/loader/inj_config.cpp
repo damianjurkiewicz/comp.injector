@@ -45,6 +45,30 @@ namespace
         return value.substr(first);
     }
 
+    std::filesystem::path GetBasePathWithBackup(const std::filesystem::path& iniPath)
+    {
+        std::filesystem::path backupPath = iniPath;
+        backupPath += ".back";
+
+        if (std::filesystem::exists(iniPath) && !std::filesystem::exists(backupPath))
+        {
+            try
+            {
+                std::filesystem::copy_file(iniPath, backupPath, std::filesystem::copy_options::overwrite_existing);
+            }
+            catch (const std::exception&)
+            {
+            }
+        }
+
+        if (std::filesystem::exists(backupPath))
+        {
+            return backupPath;
+        }
+
+        return iniPath;
+    }
+
     bool EqualsIgnoreCase(const std::string& left, const std::string& right)
     {
         if (left.size() != right.size())
@@ -409,9 +433,10 @@ void CInjConfigLoader::ParseFile(const std::filesystem::path& path)
 void CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, const std::vector<InjEntry>& entries) const
 {
     std::vector<std::string> lines;
-    if (std::filesystem::exists(iniPath))
+    std::filesystem::path basePath = GetBasePathWithBackup(iniPath);
+    if (std::filesystem::exists(basePath))
     {
-        std::ifstream in(iniPath);
+        std::ifstream in(basePath);
         if (!in.is_open())
         {
             return;
@@ -566,22 +591,6 @@ void CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, 
     if (!modified)
     {
         return;
-    }
-
-    if (std::filesystem::exists(iniPath))
-    {
-        std::filesystem::path backupPath = iniPath;
-        backupPath += ".bak";
-        if (!std::filesystem::exists(backupPath))
-        {
-            try
-            {
-                std::filesystem::copy_file(iniPath, backupPath, std::filesystem::copy_options::overwrite_existing);
-            }
-            catch (const std::exception&)
-            {
-            }
-        }
     }
 
     std::ofstream out(iniPath, std::ios::trunc);
