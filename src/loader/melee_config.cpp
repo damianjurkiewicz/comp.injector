@@ -1,11 +1,13 @@
 #include "pch.h"
 #include "melee_config.h"
+#include "logger.h"
 #include <unordered_set>
 
 CFLAMeleeConfigLoader FLAMeleeConfigLoader;
 
 namespace
 {
+    const char* kLogPrefix = "MELEE_CONFIG";
     const char* kMarker = "; comp.injector added gtasa_melee_config";
 
     std::string GetBasePathWithBackup(const std::string& settingsPath)
@@ -71,6 +73,7 @@ void CFLAMeleeConfigLoader::UpdateMeleeConfigFile()
 
     if (!std::filesystem::exists(basePath))
     {
+        Logger.Log(std::string(kLogPrefix) + ": base file not found at " + basePath);
         return;
     }
 
@@ -89,6 +92,7 @@ void CFLAMeleeConfigLoader::UpdateMeleeConfigFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": refreshed " + settingsPath);
         return;
     }
 
@@ -145,6 +149,7 @@ void CFLAMeleeConfigLoader::UpdateMeleeConfigFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": updated " + settingsPath);
     }
     else
     {
@@ -157,9 +162,11 @@ void CFLAMeleeConfigLoader::Process()
 {
     if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_melee_config.dat")))
     {
+        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
         return;
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": processing melee config.");
     UpdateMeleeConfigFile();
 }
 

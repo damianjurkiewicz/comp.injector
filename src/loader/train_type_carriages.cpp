@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "train_type_carriages.h"
+#include "logger.h"
 #include <sstream>
 #include <unordered_set>
 
@@ -7,6 +8,7 @@ CFLATrainTypeCarriagesLoader FLATrainTypeCarriagesLoader;
 
 namespace
 {
+    const char* kLogPrefix = "TRAIN_TYPE_CARRIAGES";
     const char* kMarker = "; comp.injector added gtasa_trainTypeCarriages";
 
     std::string GetBasePathWithBackup(const std::string& settingsPath)
@@ -72,6 +74,7 @@ void CFLATrainTypeCarriagesLoader::UpdateTrainTypeCarriagesFile()
 
     if (!std::filesystem::exists(basePath))
     {
+        Logger.Log(std::string(kLogPrefix) + ": base file not found at " + basePath);
         return;
     }
 
@@ -90,6 +93,7 @@ void CFLATrainTypeCarriagesLoader::UpdateTrainTypeCarriagesFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": refreshed " + settingsPath);
         return;
     }
 
@@ -146,6 +150,7 @@ void CFLATrainTypeCarriagesLoader::UpdateTrainTypeCarriagesFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": updated " + settingsPath);
     }
     else
     {
@@ -158,9 +163,11 @@ void CFLATrainTypeCarriagesLoader::Process()
 {
     if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_trainTypeCarriages.dat")))
     {
+        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
         return;
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": processing train type carriages.");
     UpdateTrainTypeCarriagesFile();
 }
 

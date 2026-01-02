@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "inj_config.h"
+#include "logger.h"
 #include <fstream>
 #include <optional>
 #include <unordered_map>
@@ -9,6 +10,7 @@ CInjConfigLoader InjConfigLoader;
 
 namespace
 {
+    const char* kLogPrefix = "INJ";
     bool IsCommentOrEmpty(const std::string& line)
     {
         const auto firstNonWhitespace = line.find_first_not_of(" \t\r\n");
@@ -281,9 +283,12 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
         CollectInjFiles(pluginDir, injFiles);
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": found " + std::to_string(injFiles.size()) + " .inj files.");
+
     // If there are no .inj files at all, restore every *.ini from *.ini.back in /modloader.
     if (injFiles.empty())
     {
+        Logger.Log(std::string(kLogPrefix) + ": no .inj files found, restoring ini backups.");
         RestoreIniFilesFromBackups(modloaderRoot);
         return;
     }
@@ -293,9 +298,12 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
         ParseFile(file);
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": parsed " + std::to_string(entries.size()) + " entries.");
+
     // If parsing produced no entries, treat it as "nothing to update" and restore.
     if (entries.empty())
     {
+        Logger.Log(std::string(kLogPrefix) + ": no entries parsed, restoring ini backups.");
         RestoreIniFilesFromBackups(modloaderRoot);
         return;
     }
@@ -318,20 +326,27 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
     }
 
     bool didUpdateAnything = false;
+    int updatedFiles = 0;
 
     for (const auto& group : grouped)
     {
         if (ApplyEntriesToFile(group.first, group.second))
         {
             didUpdateAnything = true;
+            ++updatedFiles;
+            Logger.Log(std::string(kLogPrefix) + ": updated " + group.first.string());
         }
     }
 
     // If nothing was actually modified/written, restore baselines in /modloader.
     if (!didUpdateAnything)
     {
+        Logger.Log(std::string(kLogPrefix) + ": no changes written, restoring ini backups.");
         RestoreIniFilesFromBackups(modloaderRoot);
+        return;
     }
+
+    Logger.Log(std::string(kLogPrefix) + ": updated " + std::to_string(updatedFiles) + " ini files.");
 }
 
 void CInjConfigLoader::CollectInjFiles(const std::filesystem::path& dir, std::vector<std::filesystem::path>& files) const

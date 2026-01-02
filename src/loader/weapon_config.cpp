@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "weapon_config.h"
+#include "logger.h"
 #include <algorithm>
 #include <cctype>
 #include <cstring>
@@ -8,6 +9,7 @@
 CFLAWeaponConfigLoader FLAWeaponConfigLoader;
 
 namespace {
+const char* kLogPrefix = "WEAPON_CONFIG";
 std::string ToLowerCopy(std::string value) {
     std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
         return static_cast<char>(std::tolower(ch));
@@ -84,6 +86,7 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
 
     if (!std::filesystem::exists(basePath))
     {
+        Logger.Log(std::string(kLogPrefix) + ": base file not found at " + basePath);
         return;
     }
 
@@ -102,6 +105,7 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": refreshed " + settingsPath);
         return;
     }
 
@@ -176,6 +180,7 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": updated " + settingsPath);
     }
     else
     {
@@ -188,9 +193,11 @@ void CFLAWeaponConfigLoader::Process()
 {
     if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_weapon_config.dat")))
     {
+        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
         return;
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": processing weapon config.");
     UpdateWeaponConfigFile();
 }
 

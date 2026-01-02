@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "cheat_strings.h"
+#include "logger.h"
 #include <algorithm>
 #include <cctype>
 #include <unordered_set>
@@ -7,6 +8,7 @@
 CFLACheatStringsLoader FLACheatStringsLoader;
 
 namespace {
+const char* kLogPrefix = "CHEAT_STRINGS";
 const char* kMarker = "; comp.injector added cheatStrings";
 
 std::string TrimCopy(const std::string &value)
@@ -83,6 +85,7 @@ void CFLACheatStringsLoader::UpdateCheatStringsFile()
 
     if (!std::filesystem::exists(basePath))
     {
+        Logger.Log(std::string(kLogPrefix) + ": base file not found at " + basePath);
         return;
     }
 
@@ -101,6 +104,7 @@ void CFLACheatStringsLoader::UpdateCheatStringsFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": refreshed " + settingsPath);
         return;
     }
 
@@ -157,6 +161,7 @@ void CFLACheatStringsLoader::UpdateCheatStringsFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": updated " + settingsPath);
     }
     else
     {
@@ -169,9 +174,11 @@ void CFLACheatStringsLoader::Process()
 {
     if (store.empty() && !HasMarker(GAME_PATH((char*)"data/cheatStrings.dat")))
     {
+        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
         return;
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": processing cheat strings.");
     UpdateCheatStringsFile();
 }
 

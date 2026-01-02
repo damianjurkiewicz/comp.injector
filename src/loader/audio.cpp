@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "audio.h"
+#include "logger.h"
 #include "tVehicleAudioSetting.h"
 #include <unordered_set> // <<< ADD THIS INCLUDE FOR THE DUPLICATE CHECK
 
@@ -7,6 +8,7 @@ CFLAAudioLoader FLAAudioLoader;
 
 namespace
 {
+    const char* kLogPrefix = "AUDIO";
     const char* kMarker = "; comp.injector added vehicles";
 
     std::string GetBasePathWithBackup(const std::string& settingsPath)
@@ -73,6 +75,7 @@ void CFLAAudioLoader::UpdateAudioFile()
 
     if (!std::filesystem::exists(basePath))
     {
+        Logger.Log(std::string(kLogPrefix) + ": base file not found at " + basePath);
         return;
     }
 
@@ -91,6 +94,7 @@ void CFLAAudioLoader::UpdateAudioFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": refreshed " + settingsPath);
         return;
     }
 
@@ -171,6 +175,7 @@ void CFLAAudioLoader::UpdateAudioFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": updated " + settingsPath);
     }
     else
     {
@@ -183,9 +188,11 @@ void CFLAAudioLoader::Process() {
     // ... (This function is unchanged)
     if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_vehicleAudioSettings.cfg")))
     {
+        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
         return;
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": processing vehicle audio settings.");
     UpdateAudioFile();
 }
 

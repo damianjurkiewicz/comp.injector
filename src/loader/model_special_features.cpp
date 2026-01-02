@@ -1,11 +1,13 @@
 #include "pch.h"
 #include "model_special_features.h"
+#include "logger.h"
 #include <unordered_set>
 
 CFLAModelSpecialFeaturesLoader FLAModelSpecialFeaturesLoader;
 
 namespace
 {
+    const char* kLogPrefix = "MODEL_SPECIAL_FEATURES";
     const char* kMarker = "; comp.injector added model_special_features";
 
     std::string GetBasePathWithBackup(const std::string& settingsPath)
@@ -71,6 +73,7 @@ void CFLAModelSpecialFeaturesLoader::UpdateModelSpecialFeaturesFile()
 
     if (!std::filesystem::exists(basePath))
     {
+        Logger.Log(std::string(kLogPrefix) + ": base file not found at " + basePath);
         return;
     }
 
@@ -89,6 +92,7 @@ void CFLAModelSpecialFeaturesLoader::UpdateModelSpecialFeaturesFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": refreshed " + settingsPath);
         return;
     }
 
@@ -145,6 +149,7 @@ void CFLAModelSpecialFeaturesLoader::UpdateModelSpecialFeaturesFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": updated " + settingsPath);
     }
     else
     {
@@ -157,9 +162,11 @@ void CFLAModelSpecialFeaturesLoader::Process()
 {
     if (store.empty() && !HasMarker(GAME_PATH((char*)"data/model_special_features.dat")))
     {
+        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
         return;
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": processing model special features.");
     UpdateModelSpecialFeaturesFile();
 }
 

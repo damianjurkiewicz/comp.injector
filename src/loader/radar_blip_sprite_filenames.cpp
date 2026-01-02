@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "radar_blip_sprite_filenames.h"
+#include "logger.h"
 #include <sstream>
 #include <unordered_set>
 
@@ -7,6 +8,7 @@ CFLARadarBlipSpriteFilenamesLoader FLARadarBlipSpriteFilenamesLoader;
 
 namespace
 {
+    const char* kLogPrefix = "RADAR_BLIP_SPRITES";
     const char* kMarker = "; comp.injector added gtasa_radarBlipSpriteFilenames";
 
     std::string GetBasePathWithBackup(const std::string& settingsPath)
@@ -72,6 +74,7 @@ void CFLARadarBlipSpriteFilenamesLoader::UpdateRadarBlipSpriteFilenamesFile()
 
     if (!std::filesystem::exists(basePath))
     {
+        Logger.Log(std::string(kLogPrefix) + ": base file not found at " + basePath);
         return;
     }
 
@@ -90,6 +93,7 @@ void CFLARadarBlipSpriteFilenamesLoader::UpdateRadarBlipSpriteFilenamesFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": refreshed " + settingsPath);
         return;
     }
 
@@ -146,6 +150,7 @@ void CFLARadarBlipSpriteFilenamesLoader::UpdateRadarBlipSpriteFilenamesFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": updated " + settingsPath);
     }
     else
     {
@@ -158,9 +163,11 @@ void CFLARadarBlipSpriteFilenamesLoader::Process()
 {
     if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_radarBlipSpriteFilenames.dat")))
     {
+        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
         return;
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": processing radar blip sprite filenames.");
     UpdateRadarBlipSpriteFilenamesFile();
 }
 
