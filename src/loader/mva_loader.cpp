@@ -22,6 +22,44 @@ namespace
         std::string folderName = path.filename().string();
         return !folderName.empty() && folderName[0] == '.';
     }
+
+    std::vector<std::string> SplitSectionNames(const std::string& section)
+    {
+        std::vector<std::string> names;
+        std::string current;
+        for (char ch : section)
+        {
+            if (ch == ',')
+            {
+                if (!current.empty())
+                {
+                    size_t start = current.find_first_not_of(" \t\r\n");
+                    size_t end = current.find_last_not_of(" \t\r\n");
+                    if (start != std::string::npos && end != std::string::npos)
+                    {
+                        names.push_back(current.substr(start, end - start + 1));
+                    }
+                }
+                current.clear();
+            }
+            else
+            {
+                current.push_back(ch);
+            }
+        }
+
+        if (!current.empty())
+        {
+            size_t start = current.find_first_not_of(" \t\r\n");
+            size_t end = current.find_last_not_of(" \t\r\n");
+            if (start != std::string::npos && end != std::string::npos)
+            {
+                names.push_back(current.substr(start, end - start + 1));
+            }
+        }
+
+        return names;
+    }
 }
 
 void CMvaLoader::Process()
@@ -292,7 +330,7 @@ CMvaLoader::IniData CMvaLoader::ReadIniData(const std::filesystem::path& path) c
 
     IniData data;
     std::string line;
-    std::string currentSection;
+    std::vector<std::string> currentSections;
     while (getline(in, line))
     {
         const auto firstNonWhitespace = line.find_first_not_of(" \t\r\n");
@@ -313,12 +351,13 @@ CMvaLoader::IniData CMvaLoader::ReadIniData(const std::filesystem::path& path) c
 
         if (trimmedLine.size() >= 2 && trimmedLine.front() == '[' && trimmedLine.back() == ']')
         {
-            currentSection = trimmedLine.substr(1, trimmedLine.size() - 2);
+            std::string sectionName = trimmedLine.substr(1, trimmedLine.size() - 2);
+            currentSections = SplitSectionNames(sectionName);
             continue;
         }
 
         const auto equals = trimmedLine.find('=');
-        if (equals == std::string::npos || currentSection.empty())
+        if (equals == std::string::npos || currentSections.empty())
         {
             continue;
         }
@@ -334,7 +373,10 @@ CMvaLoader::IniData CMvaLoader::ReadIniData(const std::filesystem::path& path) c
             continue;
         }
 
-        data[currentSection][key] = value;
+        for (const auto& sectionName : currentSections)
+        {
+            data[sectionName][key] = value;
+        }
     }
 
     in.close();
