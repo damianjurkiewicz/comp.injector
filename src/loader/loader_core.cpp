@@ -9,6 +9,7 @@
 #include "cheat_strings.h"
 #include "tracks_config.h"
 #include "inj_config.h"
+#include "mva_loader.h"
 
 
 CompInjector::CompInjector(HINSTANCE pluginHandle)
@@ -28,6 +29,8 @@ CompInjector::CompInjector(HINSTANCE pluginHandle)
 
         InjConfigLoader.Process(pluginDir);
     }
+
+    MvaLoader.Process();
 
     if (gConfig.ReadInteger("MAIN", "FLAAudioLoader", 1) == 1)
     {
