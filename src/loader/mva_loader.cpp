@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "mva_loader.h"
 #include "logger.h"
 #include <fstream>
@@ -147,6 +147,54 @@ namespace
     };
 }
 
+void RestoreIniFilesFromBackups(const std::filesystem::path& modloaderRoot)
+{
+    std::filesystem::directory_options options = std::filesystem::directory_options::skip_permission_denied;
+    for (auto it = std::filesystem::recursive_directory_iterator(modloaderRoot, options);
+        it != std::filesystem::recursive_directory_iterator();
+        ++it)
+    {
+        if (it->is_directory())
+        {
+            if (IsHiddenFolder(it->path()))
+            {
+                it.disable_recursion_pending();
+            }
+            continue;
+        }
+
+        if (!it->is_regular_file())
+        {
+            continue;
+        }
+
+        const std::filesystem::path filePath = it->path();
+        if (ToLower(filePath.extension().string()) != ".back")
+        {
+            continue;
+        }
+
+        // Only handle "*.ini.back"
+        std::filesystem::path iniPath = filePath;
+        iniPath.replace_extension(); // drop .back
+        if (ToLower(iniPath.extension().string()) != ".ini")
+        {
+            continue;
+        }
+
+        try
+        {
+            std::filesystem::copy_file(filePath, iniPath, std::filesystem::copy_options::overwrite_existing);
+            Logger.Log("MVA: restored " + iniPath.string() + " from " + filePath.string());
+        }
+        catch (const std::exception&)
+        {
+            Logger.Log("MVA: failed to restore " + iniPath.string() + " from " + filePath.string());
+        }
+    }
+}
+
+
 void CMvaLoader::Process()
 {
     const std::filesystem::path modloaderRoot = GAME_PATH((char*)"modloader");
@@ -160,9 +208,45 @@ void CMvaLoader::Process()
 
     std::vector<MvaFileEntry> entries;
     CollectMvaFiles(modloaderRoot, entries);
+    // If there is nothing to update, restore known INIs from their .back (if present).
     if (entries.empty())
     {
         Logger.Log("MVA: no .mva files found.");
+
+        std::unordered_map<std::string, std::filesystem::path> originalIniCache;
+        const std::vector<std::string> kRestoreNames = {
+            "ModelVariations_Peds.ini",
+            "ModelVariations_PedWeapons.ini",
+            "ModelVariations_Vehicles.ini",
+            "ModelVariations.ini",
+        };
+
+        for (const auto& name : kRestoreNames)
+        {
+            std::filesystem::path originalIni = FindOriginalIni(modloaderRoot, name, originalIniCache);
+            if (originalIni.empty())
+            {
+                continue;
+            }
+
+            std::filesystem::path backupPath = originalIni;
+            backupPath += ".back";
+            if (!std::filesystem::exists(backupPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                std::filesystem::copy_file(backupPath, originalIni, std::filesystem::copy_options::overwrite_existing);
+                Logger.Log("MVA: restored " + originalIni.string() + " from " + backupPath.string());
+            }
+            catch (const std::exception&)
+            {
+                Logger.Log("MVA: failed to restore " + originalIni.string() + " from " + backupPath.string());
+            }
+        }
+
         return;
     }
 
@@ -189,6 +273,7 @@ void CMvaLoader::Process()
 
     Logger.Log("MVA: grouped into " + std::to_string(grouped.size()) + " target files.");
 
+    bool didUpdateAnything = false;
     std::unordered_map<std::string, std::filesystem::path> originalIniCache;
     for (auto& group : grouped)
     {
@@ -213,6 +298,7 @@ void CMvaLoader::Process()
 
         Logger.Log("MVA: original ini " + originalIni.string());
 
+        // 1. Ensure a backup exists and select the clean baseline path.
         std::filesystem::path basePath = GetBasePathWithBackup(originalIni);
         if (!std::filesystem::exists(basePath))
         {
@@ -220,7 +306,9 @@ void CMvaLoader::Process()
             continue;
         }
 
+        // 2. Read from the clean baseline file (.back).
         IniData finalData = ReadIniData(basePath);
+
         size_t index = 0;
         while (index < files.size())
         {
@@ -251,16 +339,73 @@ void CMvaLoader::Process()
             continue;
         }
 
-        std::ofstream out(originalIni, std::ios::binary | std::ios::trunc);
+        // --- Modified write logic (same as audio.cpp) ---
+        // 3. Build a temporary file path.
+        std::filesystem::path tempPath = originalIni;
+        tempPath += ".tmp";
+
+        // 4. Write into the .tmp file.
+        std::ofstream out(tempPath, std::ios::binary | std::ios::trunc);
         if (!out.is_open())
         {
-            Logger.Log("MVA: failed to write " + originalIni.string());
+            Logger.Log("MVA: failed to write temp file " + tempPath.string());
             continue;
         }
 
         out.write(finalContent.data(), static_cast<std::streamsize>(finalContent.size()));
         out.close();
-        Logger.Log("MVA: wrote " + originalIni.string());
+
+        // 5. Remove the old file and rename the temporary file into place.
+        try
+        {
+            std::filesystem::remove(originalIni);
+            std::filesystem::rename(tempPath, originalIni);
+            Logger.Log("MVA: updated " + originalIni.string() + " using backup mechanism");
+            didUpdateAnything = true;
+        }
+        catch (const std::exception& e)
+        {
+            Logger.Log(std::string("MVA: error swapping files: ") + e.what());
+        }
+    }
+
+    // If .mva files existed but nothing ended up being written (e.g., no matching targets), restore known INIs from .back.
+    if (!didUpdateAnything)
+    {
+        Logger.Log("MVA: nothing updated from .mva files, restoring known INIs from .back when available.");
+
+        const std::vector<std::string> kRestoreNames = {
+            "ModelVariations_Peds.ini",
+            "ModelVariations_PedWeapons.ini",
+            "ModelVariations_Vehicles.ini",
+            "ModelVariations.ini",
+        };
+
+        for (const auto& name : kRestoreNames)
+        {
+            std::filesystem::path originalIni = FindOriginalIni(modloaderRoot, name, originalIniCache);
+            if (originalIni.empty())
+            {
+                continue;
+            }
+
+            std::filesystem::path backupPath = originalIni;
+            backupPath += ".back";
+            if (!std::filesystem::exists(backupPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                std::filesystem::copy_file(backupPath, originalIni, std::filesystem::copy_options::overwrite_existing);
+                Logger.Log("MVA: restored " + originalIni.string() + " from " + backupPath.string());
+            }
+            catch (const std::exception&)
+            {
+                Logger.Log("MVA: failed to restore " + originalIni.string() + " from " + backupPath.string());
+            }
+        }
     }
 }
 
@@ -520,3 +665,4 @@ std::string CMvaLoader::WriteIniData(const IniData& data) const
 
     return out.str();
 }
+
