@@ -278,7 +278,7 @@ std::filesystem::path CMvaLoader::FindOriginalIni(
         }
     }
 
-    cache[filename] = {};
+    cache[filename] = std::filesystem::path();
     return {};
 }
 
