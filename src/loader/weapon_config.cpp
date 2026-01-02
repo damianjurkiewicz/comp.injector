@@ -44,6 +44,24 @@ std::string GetBasePathWithBackup(const std::string &settingsPath) {
 
     return settingsPath;
 }
+
+const char* kMarker = "; comp.injector added weapons";
+
+bool HasMarker(const std::string &settingsPath) {
+    std::ifstream in(settingsPath);
+    if (!in.is_open()) {
+        return false;
+    }
+
+    std::string line;
+    while (getline(in, line)) {
+        if (line.find(kMarker) != std::string::npos) {
+            return true;
+        }
+    }
+
+    return false;
+}
 }
 
 void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
@@ -69,6 +87,24 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
         return;
     }
 
+    if (store.empty())
+    {
+        std::ifstream in(basePath, std::ios::binary);
+        std::ofstream out(settingsPathTemp, std::ios::binary | std::ios::trunc);
+        if (!in.is_open() || !out.is_open())
+        {
+            return;
+        }
+
+        out << in.rdbuf();
+        in.close();
+        out.close();
+
+        std::filesystem::remove(settingsPath);
+        std::filesystem::rename(settingsPathTemp, settingsPath);
+        return;
+    }
+
     std::unordered_set<std::string> writtenLines;
     std::unordered_set<std::string> existingLines;
 
@@ -81,11 +117,9 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
         bool ignoreLines = false;
         bool foundEndMarker = false;
         std::string endMarker;
-        const std::string marker = "; comp.injector added weapons";
-
         while (getline(in, line))
         {
-            if (line.find(marker) != std::string::npos)
+            if (line.find(kMarker) != std::string::npos)
             {
                 ignoreLines = true;
                 continue;
@@ -113,7 +147,7 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
             existingLines.insert(line);
         }
 
-        out << marker << "\n";
+        out << kMarker << "\n";
 
         for (auto &e : store)
         {
@@ -152,10 +186,12 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
 
 void CFLAWeaponConfigLoader::Process()
 {
-    if (!store.empty())
+    if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_weapon_config.dat")))
     {
-        UpdateWeaponConfigFile();
+        return;
     }
+
+    UpdateWeaponConfigFile();
 }
 
 void CFLAWeaponConfigLoader::AddLine(const std::string &line)
