@@ -2,6 +2,7 @@
 #include "mva_loader.h"
 #include "logger.h"
 #include <fstream>
+#include <sstream>
 
 CMvaLoader MvaLoader;
 
@@ -76,6 +77,8 @@ void CMvaLoader::Process()
             continue;
         }
 
+        targetRelative.replace_extension(".ini");
+        Logger.Log("MVA: target ini " + targetRelative.string());
         std::string targetPath = GAME_PATH((char*)targetRelative.string().c_str());
         grouped[targetPath].push_back(entry);
     }
@@ -96,25 +99,25 @@ void CMvaLoader::Process()
                 return left.sourcePath.string() < right.sourcePath.string();
             });
 
-        std::string finalContent;
+        IniData finalData;
         size_t index = 0;
         while (index < files.size())
         {
             const int priority = files[index].priority;
             Logger.Log("MVA: merging priority " + std::to_string(priority));
-            std::string mergedContent;
+            IniData mergedData;
             while (index < files.size() && files[index].priority == priority)
             {
-                std::string content = ReadFileContents(files[index].sourcePath);
+                IniData content = ReadIniData(files[index].sourcePath);
                 Logger.Log("MVA: reading " + files[index].sourcePath.string());
-                AppendFileContents(mergedContent, content);
+                MergeIniData(mergedData, content);
                 ++index;
             }
 
-            finalContent = mergedContent;
+            finalData = std::move(mergedData);
         }
 
-        if (finalContent.empty())
+        if (finalData.empty())
         {
             Logger.Log("MVA: final content empty for " + group.first + ", skipping write.");
             continue;
@@ -124,6 +127,13 @@ void CMvaLoader::Process()
         if (!targetPath.has_parent_path())
         {
             Logger.Log("MVA: invalid target path " + group.first);
+            continue;
+        }
+
+        std::string finalContent = WriteIniData(finalData);
+        if (finalContent.empty())
+        {
+            Logger.Log("MVA: no ini data to write for " + group.first);
             continue;
         }
 
@@ -234,33 +244,103 @@ std::unordered_map<std::string, int> CMvaLoader::LoadPriorities(const std::files
     return priorities;
 }
 
-std::string CMvaLoader::ReadFileContents(const std::filesystem::path& path) const
+CMvaLoader::IniData CMvaLoader::ReadIniData(const std::filesystem::path& path) const
 {
-    std::ifstream in(path, std::ios::binary);
+    std::ifstream in(path);
     if (!in.is_open())
     {
         return {};
     }
 
-    std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    in.close();
-    return contents;
-}
-
-void CMvaLoader::AppendFileContents(std::string& target, const std::string& content) const
-{
-    if (content.empty())
+    IniData data;
+    std::string line;
+    std::string currentSection;
+    while (getline(in, line))
     {
-        return;
+        const auto firstNonWhitespace = line.find_first_not_of(" \t\r\n");
+        if (firstNonWhitespace == std::string::npos)
+        {
+            continue;
+        }
+
+        const std::string_view trimmed(line.c_str() + firstNonWhitespace, line.size() - firstNonWhitespace);
+        if (trimmed.starts_with(";") || trimmed.starts_with("#") || trimmed.starts_with("//"))
+        {
+            continue;
+        }
+
+        std::string trimmedLine = line;
+        trimmedLine.erase(0, firstNonWhitespace);
+        trimmedLine.erase(trimmedLine.find_last_not_of(" \t\r\n") + 1);
+
+        if (trimmedLine.size() >= 2 && trimmedLine.front() == '[' && trimmedLine.back() == ']')
+        {
+            currentSection = trimmedLine.substr(1, trimmedLine.size() - 2);
+            continue;
+        }
+
+        const auto equals = trimmedLine.find('=');
+        if (equals == std::string::npos || currentSection.empty())
+        {
+            continue;
+        }
+
+        std::string key = trimmedLine.substr(0, equals);
+        key.erase(key.find_last_not_of(" \t\r\n") + 1);
+
+        std::string value = trimmedLine.substr(equals + 1);
+        value.erase(0, value.find_first_not_of(" \t\r\n"));
+
+        if (key.empty())
+        {
+            continue;
+        }
+
+        data[currentSection][key] = value;
     }
 
-    if (!target.empty())
+    in.close();
+    return data;
+}
+
+void CMvaLoader::MergeIniData(IniData& target, const IniData& source) const
+{
+    for (const auto& sectionPair : source)
     {
-        if (target.back() != '\n' && content.front() != '\n')
+        auto& section = target[sectionPair.first];
+        for (const auto& kv : sectionPair.second)
         {
-            target += "\n";
+            auto& value = section[kv.first];
+            if (!value.empty())
+            {
+                if (!std::isspace(static_cast<unsigned char>(value.back())))
+                {
+                    value += " ";
+                }
+            }
+            value += kv.second;
+        }
+    }
+}
+
+std::string CMvaLoader::WriteIniData(const IniData& data) const
+{
+    std::ostringstream out;
+    bool firstSection = true;
+    for (const auto& sectionPair : data)
+    {
+        if (!firstSection)
+        {
+            out << "\n";
+        }
+        firstSection = false;
+
+        out << "[" << sectionPair.first << "]\n";
+        for (const auto& kv : sectionPair.second)
+        {
+            out << kv.first << "=" << kv.second << "\n";
         }
     }
 
-    target += content;
+    return out.str();
 }

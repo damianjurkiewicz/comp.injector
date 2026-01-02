@@ -1,6 +1,7 @@
 #pragma once
 #include <filesystem>
 #include <string>
+#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -17,10 +18,14 @@ public:
     void Process();
 
 private:
+    using IniSection = std::map<std::string, std::string>;
+    using IniData = std::map<std::string, IniSection>;
+
     void CollectMvaFiles(const std::filesystem::path& modloaderRoot, std::vector<MvaFileEntry>& entries) const;
     std::unordered_map<std::string, int> LoadPriorities(const std::filesystem::path& modloaderIni) const;
-    std::string ReadFileContents(const std::filesystem::path& path) const;
-    void AppendFileContents(std::string& target, const std::string& content) const;
+    IniData ReadIniData(const std::filesystem::path& path) const;
+    void MergeIniData(IniData& target, const IniData& source) const;
+    std::string WriteIniData(const IniData& data) const;
 };
 
 extern CMvaLoader MvaLoader;
