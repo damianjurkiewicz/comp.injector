@@ -270,6 +270,7 @@ void CInjConfigLoader::ParseFile(const std::filesystem::path& path)
     ParseState state = ParseState::Modifier;
     InjModifier modifier = InjModifier::Replace;
     bool inBlock = false;
+    bool implicitBlock = false;
     std::string iniFile;
     std::string section;
 
@@ -287,9 +288,24 @@ void CInjConfigLoader::ParseFile(const std::filesystem::path& path)
             continue;
         }
 
+        if (implicitBlock)
+        {
+            InjModifier nextModifier = modifier;
+            bool opensBlock = false;
+            if (TryParseModifierLine(trimmed, nextModifier, opensBlock))
+            {
+                modifier = nextModifier;
+                inBlock = opensBlock;
+                implicitBlock = false;
+                state = ParseState::IniFile;
+                continue;
+            }
+        }
+
         if (inBlock && trimmed == "}")
         {
             inBlock = false;
+            implicitBlock = false;
             state = ParseState::Modifier;
             continue;
         }
@@ -302,7 +318,16 @@ void CInjConfigLoader::ParseFile(const std::filesystem::path& path)
             if (TryParseModifierLine(trimmed, modifier, opensBlock))
             {
                 inBlock = opensBlock;
+                implicitBlock = false;
                 state = ParseState::IniFile;
+            }
+            else
+            {
+                modifier = InjModifier::Replace;
+                inBlock = true;
+                implicitBlock = true;
+                iniFile = trimmed;
+                state = ParseState::Section;
             }
             break;
         }
