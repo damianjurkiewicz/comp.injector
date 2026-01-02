@@ -18,7 +18,6 @@ CompInjector::CompInjector(HINSTANCE pluginHandle)
 
     handle = pluginHandle;
 
-    HandleVanillaDataFiles();
     ParseModloader();
     {
         char modulePath[MAX_PATH] = {};
@@ -38,132 +37,15 @@ CompInjector::CompInjector(HINSTANCE pluginHandle)
 
     MvaLoader.Process();
 
-    if (gConfig.ReadInteger("MAIN", "FLAAudioLoader", 1) == 1)
-    {
-        FLAAudioLoader.Process();
-    }
-
-    if (gConfig.ReadInteger("MAIN", "FLAWeaponConfigLoader", 1) == 1)
-    {
-        FLAWeaponConfigLoader.Process();
-    }
-
-    if (gConfig.ReadInteger("MAIN", "FLAModelSpecialFeaturesLoader", 1) == 1)
-    {
-        FLAModelSpecialFeaturesLoader.Process();
-    }
-
-    if (gConfig.ReadInteger("MAIN", "FLATrainTypeCarriagesLoader", 1) == 1)
-    {
-        FLATrainTypeCarriagesLoader.Process();
-    }
-
-    if (gConfig.ReadInteger("MAIN", "FLARadarBlipSpriteFilenamesLoader", 1) == 1)
-    {
-        FLARadarBlipSpriteFilenamesLoader.Process();
-    }
-
-    if (gConfig.ReadInteger("MAIN", "FLAMeleeConfigLoader", 1) == 1)
-    {
-        FLAMeleeConfigLoader.Process();
-    }
-
-    if (gConfig.ReadInteger("MAIN", "FLACheatStringsLoader", 1) == 1)
-    {
-        FLACheatStringsLoader.Process();
-    }
-
-    if (gConfig.ReadInteger("MAIN", "FLATracksConfigLoader", 1) == 1)
-    {
-        FLATracksConfigLoader.Process();
-    }
+    FLAAudioLoader.Process();
+    FLAWeaponConfigLoader.Process();
+    FLAModelSpecialFeaturesLoader.Process();
+    FLATrainTypeCarriagesLoader.Process();
+    FLARadarBlipSpriteFilenamesLoader.Process();
+    FLAMeleeConfigLoader.Process();
+    FLACheatStringsLoader.Process();
+    FLATracksConfigLoader.Process();
 }
-
-
-void CompInjector::HandleVanillaDataFiles()
-{
-    // Lambda function to handle one-time .back backups (DRY principle)
-    auto checkAndBackup = [&](const char* iniKey, const char* relativePath)
-        {
-            // 1. Check if the option is enabled in the INI first.
-            // Jeśli opcja jest wyłączona (nie równa się 1), przerywamy natychmiast.
-            if (gConfig.ReadInteger("MAIN", iniKey, 0) != 1)
-            {
-                return;
-            }
-
-            std::string fullPath = GAME_PATH((char*)relativePath);
-            std::string backupPath = fullPath + ".back";
-
-            // 2. Check if the target file exists AND the backup does NOT exist yet.
-            // Logika: Pytamy o backup tylko wtedy, gdy plik istnieje i nie zrobiliśmy jeszcze jego kopii.
-            if (std::filesystem::exists(fullPath) && !std::filesystem::exists(backupPath))
-            {
-                try
-                {
-                    std::filesystem::copy_file(fullPath, backupPath, std::filesystem::copy_options::overwrite_existing);
-                }
-                catch (const std::exception&)
-                {
-                }
-            }
-        };
-
-    // --- Process Backups ---
-
-    // 1. Audio
-    checkAndBackup("FLAAudioLoader", "data/gtasa_vehicleAudioSettings.cfg");
-
-    // 2. Weapon Config
-    checkAndBackup("FLAWeaponConfigLoader", "data/gtasa_weapon_config.dat");
-
-    // 3. Model Special Features
-    checkAndBackup("FLAModelSpecialFeaturesLoader", "data/model_special_features.dat");
-
-    // 4. Train Type Carriages
-    checkAndBackup("FLATrainTypeCarriagesLoader", "data/gtasa_trainTypeCarriages.dat");
-
-    // 5. Radar Blip Sprites
-    checkAndBackup("FLARadarBlipSpriteFilenamesLoader", "data/gtasa_radarBlipSpriteFilenames.dat");
-
-    // 6. Melee Config (Standard vanilla file usually)
-    checkAndBackup("FLAMeleeConfigLoader", "data/gtasa_melee_config.dat");
-
-    // 7. Cheat Strings
-    checkAndBackup("FLACheatStringsLoader", "data/cheatStrings.dat");
-
-    // 8. Tracks Config (Standard vanilla file usually)
-    checkAndBackup("FLATracksConfigLoader", "data/Paths/gtasa_tracks_config.dat");
-
-
-    // --- Original Modloader Traversal Logic ---
-    std::function<void(const std::filesystem::path&)> traverse;
-    traverse = [&](const std::filesystem::path& dir)
-        {
-            for (const auto& entry : std::filesystem::directory_iterator(dir))
-            {
-                if (entry.is_directory())
-                {
-                    std::string folderName = entry.path().filename().string();
-                    if (!folderName.empty() && folderName[0] == '.')
-                    {
-                        continue;
-                    }
-                    traverse(entry.path());
-                    continue;
-                }
-                if (!entry.is_regular_file())
-                {
-                    continue;
-                }
-                // Dalsza logika traversal, jeśli potrzebna
-            }
-        };
-
-    traverse(GAME_PATH((char*)"modloader"));
-}
-
-
 
 
 void CompInjector::ParseModloader()
@@ -214,38 +96,14 @@ void CompInjector::ParseModloader()
                         {
                             continue;
                         }
-                        if (gConfig.ReadInteger("MAIN", "FLAAudioLoader", 1) == 1)
-                        {
-                            FLAAudioLoader.Parse(line);
-                        }
-                        if (gConfig.ReadInteger("MAIN", "FLAWeaponConfigLoader", 1) == 1)
-                        {
-                            FLAWeaponConfigLoader.Parse(line);
-                        }
-                        if (gConfig.ReadInteger("MAIN", "FLAModelSpecialFeaturesLoader", 1) == 1)
-                        {
-                            FLAModelSpecialFeaturesLoader.Parse(line);
-                        }
-                        if (gConfig.ReadInteger("MAIN", "FLATrainTypeCarriagesLoader", 1) == 1)
-                        {
-                            FLATrainTypeCarriagesLoader.Parse(line);
-                        }
-                        if (gConfig.ReadInteger("MAIN", "FLARadarBlipSpriteFilenamesLoader", 1) == 1)
-                        {
-                            FLARadarBlipSpriteFilenamesLoader.Parse(line);
-                        }
-                        if (gConfig.ReadInteger("MAIN", "FLAMeleeConfigLoader", 1) == 1)
-                        {
-                            FLAMeleeConfigLoader.Parse(line);
-                        }
-                        if (gConfig.ReadInteger("MAIN", "FLACheatStringsLoader", 1) == 1)
-                        {
-                            FLACheatStringsLoader.Parse(line);
-                        }
-                        if (gConfig.ReadInteger("MAIN", "FLATracksConfigLoader", 1) == 1)
-                        {
-                            FLATracksConfigLoader.Parse(line);
-                        }
+                        FLAAudioLoader.Parse(line);
+                        FLAWeaponConfigLoader.Parse(line);
+                        FLAModelSpecialFeaturesLoader.Parse(line);
+                        FLATrainTypeCarriagesLoader.Parse(line);
+                        FLARadarBlipSpriteFilenamesLoader.Parse(line);
+                        FLAMeleeConfigLoader.Parse(line);
+                        FLACheatStringsLoader.Parse(line);
+                        FLATracksConfigLoader.Parse(line);
                     }
                     in.close();
                 }
