@@ -95,15 +95,7 @@ void CFLACheatStringsLoader::UpdateCheatStringsFile()
                 continue;
             }
 
-            if (!linesToAdd.count(line))
-            {
-                continue;
-            }
-
-            if (writtenLines.insert(line).second)
-            {
-                out << line << "\n";
-            }
+            out << line << "\n";
         }
 
         out << marker << "\n";

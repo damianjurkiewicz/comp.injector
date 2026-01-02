@@ -101,15 +101,6 @@ void CFLAAudioLoader::UpdateAudioFile()
                 continue;
             }
 
-            if (!linesToAdd.count(line))
-            {
-                continue;
-            }
-
-            if (!writtenLines.insert(line).second)
-            {
-                continue;
-            }
             // --- END OF NEW LOGIC ---
 
             // 6. If none of the above, it's a clean, original line. Write it.
