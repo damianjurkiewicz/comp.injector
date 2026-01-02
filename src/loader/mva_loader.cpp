@@ -58,33 +58,15 @@ void CMvaLoader::Process()
             entry.priority = it->second;
         }
 
-        std::filesystem::path relativePath = std::filesystem::relative(entry.sourcePath, modloaderRoot);
-        auto pathIt = relativePath.begin();
-        if (pathIt == relativePath.end())
-        {
-            continue;
-        }
-
-        ++pathIt;
-        std::filesystem::path targetRelative;
-        for (; pathIt != relativePath.end(); ++pathIt)
-        {
-            targetRelative /= *pathIt;
-        }
-
-        if (targetRelative.empty())
-        {
-            continue;
-        }
-
-        targetRelative.replace_extension(".ini");
-        Logger.Log("MVA: target ini " + targetRelative.string());
-        std::string targetPath = GAME_PATH((char*)targetRelative.string().c_str());
-        grouped[targetPath].push_back(entry);
+        std::filesystem::path targetFilename = entry.sourcePath.filename();
+        targetFilename.replace_extension(".ini");
+        Logger.Log("MVA: target ini " + targetFilename.string());
+        grouped[targetFilename.string()].push_back(entry);
     }
 
     Logger.Log("MVA: grouped into " + std::to_string(grouped.size()) + " target files.");
 
+    std::unordered_map<std::string, std::filesystem::path> originalIniCache;
     for (auto& group : grouped)
     {
         auto& files = group.second;
@@ -99,7 +81,16 @@ void CMvaLoader::Process()
                 return left.sourcePath.string() < right.sourcePath.string();
             });
 
-        IniData finalData;
+        std::filesystem::path originalIni = FindOriginalIni(modloaderRoot, group.first, originalIniCache);
+        if (originalIni.empty())
+        {
+            Logger.Log("MVA: original ini not found for " + group.first);
+            continue;
+        }
+
+        Logger.Log("MVA: original ini " + originalIni.string());
+
+        IniData finalData = ReadIniData(originalIni);
         size_t index = 0;
         while (index < files.size())
         {
@@ -114,19 +105,12 @@ void CMvaLoader::Process()
                 ++index;
             }
 
-            finalData = std::move(mergedData);
+            ReplaceIniData(finalData, mergedData);
         }
 
         if (finalData.empty())
         {
             Logger.Log("MVA: final content empty for " + group.first + ", skipping write.");
-            continue;
-        }
-
-        std::filesystem::path targetPath(group.first);
-        if (!targetPath.has_parent_path())
-        {
-            Logger.Log("MVA: invalid target path " + group.first);
             continue;
         }
 
@@ -137,17 +121,29 @@ void CMvaLoader::Process()
             continue;
         }
 
-        std::filesystem::create_directories(targetPath.parent_path());
-        std::ofstream out(targetPath, std::ios::binary | std::ios::trunc);
+        std::filesystem::path backupPath = originalIni;
+        backupPath += ".back";
+        if (!std::filesystem::exists(backupPath))
+        {
+            try
+            {
+                std::filesystem::copy_file(originalIni, backupPath, std::filesystem::copy_options::overwrite_existing);
+            }
+            catch (const std::exception&)
+            {
+            }
+        }
+
+        std::ofstream out(originalIni, std::ios::binary | std::ios::trunc);
         if (!out.is_open())
         {
-            Logger.Log("MVA: failed to write " + group.first);
+            Logger.Log("MVA: failed to write " + originalIni.string());
             continue;
         }
 
         out.write(finalContent.data(), static_cast<std::streamsize>(finalContent.size()));
         out.close();
-        Logger.Log("MVA: wrote " + group.first);
+        Logger.Log("MVA: wrote " + originalIni.string());
     }
 }
 
@@ -244,6 +240,48 @@ std::unordered_map<std::string, int> CMvaLoader::LoadPriorities(const std::files
     return priorities;
 }
 
+std::filesystem::path CMvaLoader::FindOriginalIni(
+    const std::filesystem::path& modloaderRoot,
+    const std::string& filename,
+    std::unordered_map<std::string, std::filesystem::path>& cache) const
+{
+    auto cached = cache.find(filename);
+    if (cached != cache.end())
+    {
+        return cached->second;
+    }
+
+    std::filesystem::directory_options options = std::filesystem::directory_options::skip_permission_denied;
+    for (auto it = std::filesystem::recursive_directory_iterator(modloaderRoot, options);
+        it != std::filesystem::recursive_directory_iterator();
+        ++it)
+    {
+        if (it->is_directory())
+        {
+            if (IsHiddenFolder(it->path()))
+            {
+                it.disable_recursion_pending();
+                continue;
+            }
+            continue;
+        }
+
+        if (!it->is_regular_file())
+        {
+            continue;
+        }
+
+        if (it->path().filename().string() == filename && ToLower(it->path().extension().string()) == ".ini")
+        {
+            cache[filename] = it->path();
+            return it->path();
+        }
+    }
+
+    cache[filename] = {};
+    return {};
+}
+
 CMvaLoader::IniData CMvaLoader::ReadIniData(const std::filesystem::path& path) const
 {
     std::ifstream in(path);
@@ -319,6 +357,18 @@ void CMvaLoader::MergeIniData(IniData& target, const IniData& source) const
                 }
             }
             value += kv.second;
+        }
+    }
+}
+
+void CMvaLoader::ReplaceIniData(IniData& target, const IniData& source) const
+{
+    for (const auto& sectionPair : source)
+    {
+        auto& section = target[sectionPair.first];
+        for (const auto& kv : sectionPair.second)
+        {
+            section[kv.first] = kv.second;
         }
     }
 }
