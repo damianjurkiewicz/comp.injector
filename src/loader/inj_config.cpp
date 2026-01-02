@@ -61,10 +61,29 @@ namespace
         return !name.empty() && name[0] == '.';
     }
 
-    std::filesystem::path GetBasePathWithBackup(const std::filesystem::path& iniPath)
+    std::filesystem::path GetBackupPath(const std::filesystem::path& iniPath)
     {
         std::filesystem::path backupPath = iniPath;
         backupPath += ".back";
+
+        std::filesystem::path cacheDir = Logger.GetCacheDirectory();
+        if (!cacheDir.empty())
+        {
+            std::filesystem::path relativePath = iniPath.is_absolute()
+                ? iniPath.relative_path()
+                : iniPath;
+            backupPath = cacheDir / relativePath;
+            backupPath += ".back";
+            std::error_code ec;
+            std::filesystem::create_directories(backupPath.parent_path(), ec);
+        }
+
+        return backupPath;
+    }
+
+    std::filesystem::path GetBasePathWithBackup(const std::filesystem::path& iniPath)
+    {
+        std::filesystem::path backupPath = GetBackupPath(iniPath);
 
         // Create baseline backup next to the edited ini, only once.
         if (std::filesystem::exists(iniPath) && !std::filesystem::exists(backupPath))
@@ -86,7 +105,7 @@ namespace
         return iniPath;
     }
 
-    // Restore *.ini from *.ini.back under a root folder (best-effort).
+    // Restore *.ini from cached *.ini.back under a root folder (best-effort).
     // This is the "nothing to update => reset to baseline" behavior.
     void RestoreIniFilesFromBackups(const std::filesystem::path& root)
     {
@@ -115,18 +134,14 @@ namespace
                 continue;
             }
 
-            const std::filesystem::path backPath = it->path();
-
-            // Only handle "*.ini.back"
-            if (ToLowerStr(backPath.extension().string()) != ".back")
+            const std::filesystem::path iniPath = it->path();
+            if (ToLowerStr(iniPath.extension().string()) != ".ini")
             {
                 continue;
             }
 
-            std::filesystem::path iniPath = backPath;
-            iniPath.replace_extension(); // drop ".back"
-
-            if (ToLowerStr(iniPath.extension().string()) != ".ini")
+            const std::filesystem::path backPath = GetBackupPath(iniPath);
+            if (!std::filesystem::exists(backPath))
             {
                 continue;
             }
