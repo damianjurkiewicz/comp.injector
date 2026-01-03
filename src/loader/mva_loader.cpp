@@ -5,6 +5,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
+#include <algorithm> // Potrzebne dla std::transform jeśli ToLower byłoby inne, ale tu mamy własne
 
 CMvaLoader MvaLoader;
 
@@ -223,7 +224,7 @@ void CMvaLoader::Process()
 
     std::vector<MvaFileEntry> entries;
     CollectMvaFiles(modloaderRoot, entries);
-    // If there is nothing to update, restore known INIs from their .back (if present).
+
     if (entries.empty())
     {
         Logger.Log("MVA: no .mva files found.");
@@ -312,7 +313,6 @@ void CMvaLoader::Process()
 
         Logger.Log("MVA: original ini " + originalIni.string());
 
-        // 1. Ensure a backup exists and select the clean baseline path.
         std::filesystem::path basePath = GetBasePathWithBackup(originalIni);
         if (!std::filesystem::exists(basePath))
         {
@@ -320,7 +320,6 @@ void CMvaLoader::Process()
             continue;
         }
 
-        // 2. Read from the clean baseline file (.back).
         IniData finalData = ReadIniData(basePath);
 
         size_t index = 0;
@@ -353,12 +352,9 @@ void CMvaLoader::Process()
             continue;
         }
 
-        // --- Modified write logic (same as audio.cpp) ---
-        // 3. Build a temporary file path.
         std::filesystem::path tempPath = originalIni;
         tempPath += ".tmp";
 
-        // 4. Write into the .tmp file.
         std::ofstream out(tempPath, std::ios::binary | std::ios::trunc);
         if (!out.is_open())
         {
@@ -369,7 +365,6 @@ void CMvaLoader::Process()
         out.write(finalContent.data(), static_cast<std::streamsize>(finalContent.size()));
         out.close();
 
-        // 5. Remove the old file and rename the temporary file into place.
         try
         {
             std::filesystem::remove(originalIni);
@@ -383,7 +378,6 @@ void CMvaLoader::Process()
         }
     }
 
-    // If .mva files existed but nothing ended up being written (e.g., no matching targets), restore known INIs from .back.
     if (!didUpdateAnything)
     {
         Logger.Log("MVA: nothing updated from .mva files, restoring known INIs from .back when available.");
@@ -589,7 +583,8 @@ CMvaLoader::IniData CMvaLoader::ReadIniData(const std::filesystem::path& path) c
         if (trimmedLine.size() >= 2 && trimmedLine.front() == '[' && trimmedLine.back() == ']')
         {
             std::string sectionName = trimmedLine.substr(1, trimmedLine.size() - 2);
-            currentSections = SplitSectionNames(sectionName);
+            // ZMIANA: Normalizacja nazwy sekcji do małych liter, aby uniknąć duplikatów np. [Zone] i [ZONE]
+            currentSections = SplitSectionNames(ToLower(sectionName));
             continue;
         }
 
@@ -601,6 +596,8 @@ CMvaLoader::IniData CMvaLoader::ReadIniData(const std::filesystem::path& path) c
 
         std::string key = trimmedLine.substr(0, equals);
         key.erase(key.find_last_not_of(" \t\r\n") + 1);
+        // ZMIANA: Normalizacja klucza do małych liter
+        key = ToLower(key);
 
         std::string value = trimmedLine.substr(equals + 1);
         value.erase(0, value.find_first_not_of(" \t\r\n"));
@@ -635,10 +632,8 @@ void CMvaLoader::MergeIniData(IniData& target, const IniData& source) const
             }
             if (!value.empty())
             {
-                if (!std::isspace(static_cast<unsigned char>(value.back())))
-                {
-                    value += " ";
-                }
+                // ZMIANA: Użycie przecinka zamiast spacji przy łączeniu wartości
+                value += ", ";
             }
             value += kv.second;
         }
@@ -678,3 +673,4 @@ std::string CMvaLoader::WriteIniData(const IniData& data) const
 
     return out.str();
 }
+
