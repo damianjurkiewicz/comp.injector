@@ -1,7 +1,3 @@
-# COMP.Injector – Overview and Usage Examples
-
-Below is a concise explanation of how **COMP.Injector** works, along with practical usage examples. This file is designed for quick setup and to avoid conflicts with other mods.
-
 ## What does COMP.Injector do?
 
 COMP.Injector is an `.asi` plugin that **merges and overrides selected data from configuration files** before any other mods start loading.  
@@ -10,21 +6,21 @@ This lets you safely add new objects, vehicles, and settings without manual file
 ## Core file types
 
 1. **`.mva` – Model Variations**
-   - Files responsible for model variants (vehicles, objects, etc.).
-   - Use them to add new variants without manual edits.
+   - You can merge: ModelVariations_Peds.ini, ModelVariations_PedWeapons.ini, ModelVariations_Vehicles.ini
 
-2. **`.inj` – arbitrary INI files**
+
+2. **`.inj` – INI files**
    - Useful for **preconfiguring mods** (for example, **MixMods** settings).
    - Keeps all configuration in one place and applies it automatically.
 
 3. **`.fla` and original Fastman Limit Adjuster files**
-   - Support for **Fastman92 Limit Adjuster**–related files.
+   - Support for ALL **Fastman92 Limit Adjuster**–related files.
    - Allows consistent merging and loading with the rest of your setup.
 
 ## Required loader
 
 **COMP.Injector must load first.**  
-You must use **COMP.ASI Loader**, which guarantees the correct loading order.
+You should use **COMP.ASI Loader**, which guarantees the correct loading order.
 
 This is critical because COMP.Injector must **override values before other mods are loaded**.
 
@@ -32,9 +28,8 @@ This is critical because COMP.Injector must **override values before other mods 
 
 Compared to ModLoader:
 
-- COMP.Injector **does not work in RAM**. It **modifies data on disk**.
-- This means the system needs a moment to update files.
-- This approach was **necessary**, because repeated attempts to integrate ModLoader with Fastman Limit Adjuster failed due to race conditions.
+- This approach was **necessary**, because repeated attempts to integrate ModLoader with Fastman Limit Adjuster failed due to race conditions 
+- COMP.Injector **does not work in RAM**. It **modifies data on disk**
 
 **The result:**
 - simple implementation,
@@ -45,7 +40,7 @@ Compared to ModLoader:
 
 ### 1) Model Variations (.mva)
 
-1. Place `example.mva` in the COMP.Injector directory.
+1. Place a `ModelVariations_Peds.ini` file in any modloader folder and change the extension to `ModelVariations_Peds.mva` 
 2. Start the game. COMP.Injector merges the data before other mods load.
 
 ### 2) INI configurations (.inj)
@@ -58,16 +53,17 @@ ExampleSetting=1
 AnotherSetting=On
 ```
 
-2. Place the file in a folder handled by COMP.Injector.
+2. Place the file in a folder in any modloader folder
 3. The configuration is applied automatically on game start.
 
 ### 3) Fastman Limit Adjuster (.fla)
 
-1. Place `fla_config.fla` in the correct location.
-2. COMP.Injector merges it with the original FLA files.
-3. The values are applied before other mods start.
+1. Place any FLA file from /data in any modloader folder
+( gtasa_weapon_config.dat , cheatStrings.dat , gtasa_melee_config.dat, gtasa_radarBlipSpriteFilenames.dat, gtasa_trainTypeCarriages.dat, model_special_features.dat , gtasa_vehicleAudioSettings.cfg)
+2. COMP.Injector merges it with the original FLA file
+3. Optional: prepare a .fla file like, and put in any modloader folder
+`sacgyosemite 0 26 25 0 0.85 1.0 7 1.05946 2 0 13 3 38 0.0
+sacgyoscclb 0 26 25 0 0.85 1.0 7 1.05946 2 0 13 3 38 0.0`
+ATTENTION: Usage of .fla file works only for `gtasa_vehicleAudioSettings.cfg` and `gtasa_weapon_config.dat` 
 
-## Summary
 
-COMP.Injector is a reliable tool for data merging and safe mod startup.  
-By supporting `.mva`, `.inj`, and `.fla` files and enforcing early loading via **COMP.ASI Loader**, it provides stable and predictable behavior even in complex mod setups.
