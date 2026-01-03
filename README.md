@@ -9,7 +9,8 @@ This lets you safely add new objects, vehicles, and settings without manual file
 ## Core file types
 
 1. **`.mva` – Model Variations**
-   - You can merge: ModelVariations_Peds.ini, ModelVariations_PedWeapons.ini, ModelVariations_Vehicles.ini
+   - You can merge: ModelVariations_Peds.ini, ModelVariations_PedWeapons.ini, ModelVariations_Vehicles.ini. 
+   **BONUS** It also obeys mod priorities from the modloader.ini. I use it for gangs from SA Gang Ped Overhaul over gangs from Model Variations Loaded. 
 
 
 2. **`.inj` – INI files**
