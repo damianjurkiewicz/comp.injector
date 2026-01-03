@@ -2,6 +2,7 @@
 
 COMP.Injector is an `.asi` plugin that **merges and overrides selected data from configuration files** before any other mods start loading.  
 This lets you safely add new objects, vehicles, and settings without manual file merging and without conflict risk.
+The most important: when you delete your modified files from /modloader mod automatically load default settings. Defualt settings files are stored in COMP.Injector/references. 
 
 ## Core file types
 
@@ -45,15 +46,16 @@ Compared to ModLoader:
 
 ### 2) INI configurations (.inj)
 
-1. Create `mixmods_config.inj`:
+1. Create a file `mySettings.inj`:
 
 ```ini
+MixMods.ini
 [General]
 ExampleSetting=1
 AnotherSetting=On
 ```
 
-2. Place the file in a folder in any modloader folder
+2. Place the file in any modloader folder
 3. The configuration is applied automatically on game start.
 
 ### 3) Fastman Limit Adjuster (.fla)
