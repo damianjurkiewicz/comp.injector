@@ -36,3 +36,16 @@ void CLogger::Log(const std::string& message)
     out << "[" << stamp.str() << "] " << message << "\n";
     out.close();
 }
+
+std::filesystem::path CLogger::GetCacheDirectory() const
+{
+    if (path.empty())
+    {
+        return {};
+    }
+
+    std::filesystem::path cacheDir = path.parent_path() / "cache";
+    std::error_code ec;
+    std::filesystem::create_directories(cacheDir, ec);
+    return cacheDir;
+}

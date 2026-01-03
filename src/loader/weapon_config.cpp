@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "weapon_config.h"
+#include "logger.h"
 #include <algorithm>
 #include <cctype>
 #include <cstring>
@@ -8,6 +9,7 @@
 CFLAWeaponConfigLoader FLAWeaponConfigLoader;
 
 namespace {
+const char* kLogPrefix = "WEAPON_CONFIG";
 std::string ToLowerCopy(std::string value) {
     std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
         return static_cast<char>(std::tolower(ch));
@@ -29,8 +31,24 @@ bool IsEndMarker(const std::string &line) {
     return lowered == "end" || lowered == "the end" || lowered == ";the end";
 }
 
-std::string GetBasePathWithBackup(const std::string &settingsPath) {
-    std::string backupPath = settingsPath + ".back";
+std::filesystem::path GetBackupPath(const std::filesystem::path &settingsPath) {
+    std::filesystem::path backupPath = settingsPath;
+    backupPath += ".back";
+    std::filesystem::path cacheDir = Logger.GetCacheDirectory();
+    if (!cacheDir.empty()) {
+        std::filesystem::path relativePath = settingsPath.is_absolute()
+            ? settingsPath.relative_path()
+            : settingsPath;
+        backupPath = cacheDir / relativePath;
+        backupPath += ".back";
+        std::error_code ec;
+        std::filesystem::create_directories(backupPath.parent_path(), ec);
+    }
+    return backupPath;
+}
+
+std::filesystem::path GetBasePathWithBackup(const std::filesystem::path &settingsPath) {
+    std::filesystem::path backupPath = GetBackupPath(settingsPath);
     if (std::filesystem::exists(settingsPath) && !std::filesystem::exists(backupPath)) {
         try {
             std::filesystem::copy_file(settingsPath, backupPath, std::filesystem::copy_options::overwrite_existing);
@@ -66,9 +84,10 @@ bool HasMarker(const std::string &settingsPath) {
 
 void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
 {
-    std::string settingsPath = GAME_PATH((char*)"data/gtasa_weapon_config.dat");
-    std::string settingsPathTemp = settingsPath + ".tmp";
-    std::string basePath = GetBasePathWithBackup(settingsPath);
+    std::filesystem::path settingsPath = GAME_PATH((char*)"data/gtasa_weapon_config.dat");
+    std::filesystem::path settingsPathTemp = settingsPath;
+    settingsPathTemp += ".tmp";
+    std::filesystem::path basePath = GetBasePathWithBackup(settingsPath);
     auto isCommentOrEmpty = [](const std::string &value)
         {
             const auto start = value.find_first_not_of(" \t\r\n");
@@ -84,6 +103,7 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
 
     if (!std::filesystem::exists(basePath))
     {
+        Logger.Log(std::string(kLogPrefix) + ": base file not found at " + basePath.string());
         return;
     }
 
@@ -102,6 +122,7 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": refreshed " + settingsPath.string());
         return;
     }
 
@@ -176,6 +197,7 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": updated " + settingsPath.string());
     }
     else
     {
@@ -188,9 +210,11 @@ void CFLAWeaponConfigLoader::Process()
 {
     if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_weapon_config.dat")))
     {
+        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
         return;
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": processing weapon config.");
     UpdateWeaponConfigFile();
 }
 

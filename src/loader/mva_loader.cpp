@@ -63,10 +63,27 @@ namespace
         return names;
     }
 
-    std::filesystem::path GetBasePathWithBackup(const std::filesystem::path& iniPath)
+    std::filesystem::path GetBackupPath(const std::filesystem::path& iniPath)
     {
         std::filesystem::path backupPath = iniPath;
         backupPath += ".back";
+        std::filesystem::path cacheDir = Logger.GetCacheDirectory();
+        if (!cacheDir.empty())
+        {
+            std::filesystem::path relativePath = iniPath.is_absolute()
+                ? iniPath.relative_path()
+                : iniPath;
+            backupPath = cacheDir / relativePath;
+            backupPath += ".back";
+            std::error_code ec;
+            std::filesystem::create_directories(backupPath.parent_path(), ec);
+        }
+        return backupPath;
+    }
+
+    std::filesystem::path GetBasePathWithBackup(const std::filesystem::path& iniPath)
+    {
+        std::filesystem::path backupPath = GetBackupPath(iniPath);
         if (std::filesystem::exists(iniPath) && !std::filesystem::exists(backupPath))
         {
             try
@@ -168,28 +185,26 @@ void RestoreIniFilesFromBackups(const std::filesystem::path& modloaderRoot)
             continue;
         }
 
-        const std::filesystem::path filePath = it->path();
-        if (ToLower(filePath.extension().string()) != ".back")
+        const std::filesystem::path iniPath = it->path();
+        if (ToLower(iniPath.extension().string()) != ".ini")
         {
             continue;
         }
 
-        // Only handle "*.ini.back"
-        std::filesystem::path iniPath = filePath;
-        iniPath.replace_extension(); // drop .back
-        if (ToLower(iniPath.extension().string()) != ".ini")
+        std::filesystem::path backupPath = GetBackupPath(iniPath);
+        if (!std::filesystem::exists(backupPath))
         {
             continue;
         }
 
         try
         {
-            std::filesystem::copy_file(filePath, iniPath, std::filesystem::copy_options::overwrite_existing);
-            Logger.Log("MVA: restored " + iniPath.string() + " from " + filePath.string());
+            std::filesystem::copy_file(backupPath, iniPath, std::filesystem::copy_options::overwrite_existing);
+            Logger.Log("MVA: restored " + iniPath.string() + " from " + backupPath.string());
         }
         catch (const std::exception&)
         {
-            Logger.Log("MVA: failed to restore " + iniPath.string() + " from " + filePath.string());
+            Logger.Log("MVA: failed to restore " + iniPath.string() + " from " + backupPath.string());
         }
     }
 }
@@ -229,8 +244,7 @@ void CMvaLoader::Process()
                 continue;
             }
 
-            std::filesystem::path backupPath = originalIni;
-            backupPath += ".back";
+            std::filesystem::path backupPath = GetBackupPath(originalIni);
             if (!std::filesystem::exists(backupPath))
             {
                 continue;
@@ -389,8 +403,7 @@ void CMvaLoader::Process()
                 continue;
             }
 
-            std::filesystem::path backupPath = originalIni;
-            backupPath += ".back";
+            std::filesystem::path backupPath = GetBackupPath(originalIni);
             if (!std::filesystem::exists(backupPath))
             {
                 continue;
@@ -665,4 +678,3 @@ std::string CMvaLoader::WriteIniData(const IniData& data) const
 
     return out.str();
 }
-

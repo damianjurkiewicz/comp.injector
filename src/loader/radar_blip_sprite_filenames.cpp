@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "radar_blip_sprite_filenames.h"
+#include "logger.h"
 #include <sstream>
 #include <unordered_set>
 
@@ -7,11 +8,32 @@ CFLARadarBlipSpriteFilenamesLoader FLARadarBlipSpriteFilenamesLoader;
 
 namespace
 {
+    const char* kLogPrefix = "RADAR_BLIP_SPRITES";
     const char* kMarker = "; comp.injector added gtasa_radarBlipSpriteFilenames";
 
-    std::string GetBasePathWithBackup(const std::string& settingsPath)
+    std::filesystem::path GetBackupPath(const std::filesystem::path& settingsPath)
     {
-        std::string backupPath = settingsPath + ".back";
+        std::filesystem::path backupPath = settingsPath;
+        backupPath += ".back";
+
+        std::filesystem::path cacheDir = Logger.GetCacheDirectory();
+        if (!cacheDir.empty())
+        {
+            std::filesystem::path relativePath = settingsPath.is_absolute()
+                ? settingsPath.relative_path()
+                : settingsPath;
+            backupPath = cacheDir / relativePath;
+            backupPath += ".back";
+            std::error_code ec;
+            std::filesystem::create_directories(backupPath.parent_path(), ec);
+        }
+
+        return backupPath;
+    }
+
+    std::filesystem::path GetBasePathWithBackup(const std::filesystem::path& settingsPath)
+    {
+        std::filesystem::path backupPath = GetBackupPath(settingsPath);
         if (std::filesystem::exists(settingsPath) && !std::filesystem::exists(backupPath))
         {
             try
@@ -54,9 +76,10 @@ namespace
 
 void CFLARadarBlipSpriteFilenamesLoader::UpdateRadarBlipSpriteFilenamesFile()
 {
-    std::string settingsPath = GAME_PATH((char*)"data/gtasa_radarBlipSpriteFilenames.dat");
-    std::string settingsPathTemp = settingsPath + ".tmp";
-    std::string basePath = GetBasePathWithBackup(settingsPath);
+    std::filesystem::path settingsPath = GAME_PATH((char*)"data/gtasa_radarBlipSpriteFilenames.dat");
+    std::filesystem::path settingsPathTemp = settingsPath;
+    settingsPathTemp += ".tmp";
+    std::filesystem::path basePath = GetBasePathWithBackup(settingsPath);
     auto isCommentOrEmpty = [](const std::string &value)
         {
             const auto firstNonWhitespace = value.find_first_not_of(" \t\r\n");
@@ -72,6 +95,7 @@ void CFLARadarBlipSpriteFilenamesLoader::UpdateRadarBlipSpriteFilenamesFile()
 
     if (!std::filesystem::exists(basePath))
     {
+        Logger.Log(std::string(kLogPrefix) + ": base file not found at " + basePath.string());
         return;
     }
 
@@ -90,6 +114,7 @@ void CFLARadarBlipSpriteFilenamesLoader::UpdateRadarBlipSpriteFilenamesFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": refreshed " + settingsPath.string());
         return;
     }
 
@@ -146,6 +171,7 @@ void CFLARadarBlipSpriteFilenamesLoader::UpdateRadarBlipSpriteFilenamesFile()
 
         std::filesystem::remove(settingsPath);
         std::filesystem::rename(settingsPathTemp, settingsPath);
+        Logger.Log(std::string(kLogPrefix) + ": updated " + settingsPath.string());
     }
     else
     {
@@ -158,9 +184,11 @@ void CFLARadarBlipSpriteFilenamesLoader::Process()
 {
     if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_radarBlipSpriteFilenames.dat")))
     {
+        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
         return;
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": processing radar blip sprite filenames.");
     UpdateRadarBlipSpriteFilenamesFile();
 }
 

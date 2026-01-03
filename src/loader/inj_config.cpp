@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "inj_config.h"
+#include "logger.h"
 #include <fstream>
 #include <optional>
 #include <unordered_map>
@@ -9,6 +10,7 @@ CInjConfigLoader InjConfigLoader;
 
 namespace
 {
+    const char* kLogPrefix = "INJ";
     bool IsCommentOrEmpty(const std::string& line)
     {
         const auto firstNonWhitespace = line.find_first_not_of(" \t\r\n");
@@ -59,10 +61,29 @@ namespace
         return !name.empty() && name[0] == '.';
     }
 
-    std::filesystem::path GetBasePathWithBackup(const std::filesystem::path& iniPath)
+    std::filesystem::path GetBackupPath(const std::filesystem::path& iniPath)
     {
         std::filesystem::path backupPath = iniPath;
         backupPath += ".back";
+
+        std::filesystem::path cacheDir = Logger.GetCacheDirectory();
+        if (!cacheDir.empty())
+        {
+            std::filesystem::path relativePath = iniPath.is_absolute()
+                ? iniPath.relative_path()
+                : iniPath;
+            backupPath = cacheDir / relativePath;
+            backupPath += ".back";
+            std::error_code ec;
+            std::filesystem::create_directories(backupPath.parent_path(), ec);
+        }
+
+        return backupPath;
+    }
+
+    std::filesystem::path GetBasePathWithBackup(const std::filesystem::path& iniPath)
+    {
+        std::filesystem::path backupPath = GetBackupPath(iniPath);
 
         // Create baseline backup next to the edited ini, only once.
         if (std::filesystem::exists(iniPath) && !std::filesystem::exists(backupPath))
@@ -84,7 +105,7 @@ namespace
         return iniPath;
     }
 
-    // Restore *.ini from *.ini.back under a root folder (best-effort).
+    // Restore *.ini from cached *.ini.back under a root folder (best-effort).
     // This is the "nothing to update => reset to baseline" behavior.
     void RestoreIniFilesFromBackups(const std::filesystem::path& root)
     {
@@ -113,18 +134,14 @@ namespace
                 continue;
             }
 
-            const std::filesystem::path backPath = it->path();
-
-            // Only handle "*.ini.back"
-            if (ToLowerStr(backPath.extension().string()) != ".back")
+            const std::filesystem::path iniPath = it->path();
+            if (ToLowerStr(iniPath.extension().string()) != ".ini")
             {
                 continue;
             }
 
-            std::filesystem::path iniPath = backPath;
-            iniPath.replace_extension(); // drop ".back"
-
-            if (ToLowerStr(iniPath.extension().string()) != ".ini")
+            const std::filesystem::path backPath = GetBackupPath(iniPath);
+            if (!std::filesystem::exists(backPath))
             {
                 continue;
             }
@@ -281,9 +298,12 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
         CollectInjFiles(pluginDir, injFiles);
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": found " + std::to_string(injFiles.size()) + " .inj files.");
+
     // If there are no .inj files at all, restore every *.ini from *.ini.back in /modloader.
     if (injFiles.empty())
     {
+        Logger.Log(std::string(kLogPrefix) + ": no .inj files found, restoring ini backups.");
         RestoreIniFilesFromBackups(modloaderRoot);
         return;
     }
@@ -293,9 +313,12 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
         ParseFile(file);
     }
 
+    Logger.Log(std::string(kLogPrefix) + ": parsed " + std::to_string(entries.size()) + " entries.");
+
     // If parsing produced no entries, treat it as "nothing to update" and restore.
     if (entries.empty())
     {
+        Logger.Log(std::string(kLogPrefix) + ": no entries parsed, restoring ini backups.");
         RestoreIniFilesFromBackups(modloaderRoot);
         return;
     }
@@ -318,20 +341,27 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
     }
 
     bool didUpdateAnything = false;
+    int updatedFiles = 0;
 
     for (const auto& group : grouped)
     {
         if (ApplyEntriesToFile(group.first, group.second))
         {
             didUpdateAnything = true;
+            ++updatedFiles;
+            Logger.Log(std::string(kLogPrefix) + ": updated " + group.first.string());
         }
     }
 
     // If nothing was actually modified/written, restore baselines in /modloader.
     if (!didUpdateAnything)
     {
+        Logger.Log(std::string(kLogPrefix) + ": no changes written, restoring ini backups.");
         RestoreIniFilesFromBackups(modloaderRoot);
+        return;
     }
+
+    Logger.Log(std::string(kLogPrefix) + ": updated " + std::to_string(updatedFiles) + " ini files.");
 }
 
 void CInjConfigLoader::CollectInjFiles(const std::filesystem::path& dir, std::vector<std::filesystem::path>& files) const
