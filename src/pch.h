@@ -24,20 +24,5 @@ inline std::filesystem::path GetInjectorBasePath(const std::filesystem::path& or
     }
 
     std::filesystem::path injectorRoot = gameRoot / "injector";
-    std::error_code ec;
-    std::filesystem::path relativePath = originalPath.is_absolute()
-        ? std::filesystem::relative(originalPath, gameRoot, ec)
-        : originalPath;
-    if (ec || relativePath.empty())
-    {
-        return originalPath;
-    }
-
-    const std::string relativeStr = relativePath.generic_string();
-    if (relativeStr.rfind("..", 0) == 0)
-    {
-        return originalPath;
-    }
-
-    return injectorRoot / relativePath;
+    return injectorRoot / originalPath.filename();
 }
