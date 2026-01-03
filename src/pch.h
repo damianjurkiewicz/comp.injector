@@ -17,12 +17,24 @@ extern CIniReader gConfig;
 
 inline std::filesystem::path GetInjectorBasePath(const std::filesystem::path& originalPath)
 {
+    char modulePath[MAX_PATH] = {};
+    HMODULE moduleHandle = GetModuleHandleA(MODNAME_EXT);
+    if (moduleHandle == nullptr)
+    {
+        moduleHandle = GetModuleHandleA(MODNAME);
+    }
+
+    if (moduleHandle != nullptr && GetModuleFileNameA(moduleHandle, modulePath, MAX_PATH) != 0)
+    {
+        std::filesystem::path pluginDir = std::filesystem::path(modulePath).parent_path();
+        return pluginDir / "injector" / originalPath.filename();
+    }
+
     std::filesystem::path gameRoot = GAME_PATH((char*)"");
     if (gameRoot.empty())
     {
         return originalPath;
     }
 
-    std::filesystem::path injectorRoot = gameRoot / "injector";
-    return injectorRoot / originalPath.filename();
+    return gameRoot / "injector" / originalPath.filename();
 }
