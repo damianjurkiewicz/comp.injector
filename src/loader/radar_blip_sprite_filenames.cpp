@@ -152,12 +152,6 @@ void CFLARadarBlipSpriteFilenamesLoader::UpdateRadarBlipSpriteFilenamesFile()
 
 void CFLARadarBlipSpriteFilenamesLoader::Process()
 {
-    if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_radarBlipSpriteFilenames.dat")))
-    {
-        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
-        return;
-    }
-
     Logger.Log(std::string(kLogPrefix) + ": processing radar blip sprite filenames.");
     UpdateRadarBlipSpriteFilenamesFile();
 }

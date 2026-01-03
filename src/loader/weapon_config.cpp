@@ -186,12 +186,6 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
 
 void CFLAWeaponConfigLoader::Process()
 {
-    if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_weapon_config.dat")))
-    {
-        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
-        return;
-    }
-
     Logger.Log(std::string(kLogPrefix) + ": processing weapon config.");
     UpdateWeaponConfigFile();
 }

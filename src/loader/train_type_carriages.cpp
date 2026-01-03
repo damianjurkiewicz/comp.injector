@@ -152,12 +152,6 @@ void CFLATrainTypeCarriagesLoader::UpdateTrainTypeCarriagesFile()
 
 void CFLATrainTypeCarriagesLoader::Process()
 {
-    if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_trainTypeCarriages.dat")))
-    {
-        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
-        return;
-    }
-
     Logger.Log(std::string(kLogPrefix) + ": processing train type carriages.");
     UpdateTrainTypeCarriagesFile();
 }

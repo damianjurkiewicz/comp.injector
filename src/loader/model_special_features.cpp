@@ -151,12 +151,6 @@ void CFLAModelSpecialFeaturesLoader::UpdateModelSpecialFeaturesFile()
 
 void CFLAModelSpecialFeaturesLoader::Process()
 {
-    if (store.empty() && !HasMarker(GAME_PATH((char*)"data/model_special_features.dat")))
-    {
-        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
-        return;
-    }
-
     Logger.Log(std::string(kLogPrefix) + ": processing model special features.");
     UpdateModelSpecialFeaturesFile();
 }

@@ -151,12 +151,6 @@ void CFLAMeleeConfigLoader::UpdateMeleeConfigFile()
 
 void CFLAMeleeConfigLoader::Process()
 {
-    if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_melee_config.dat")))
-    {
-        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
-        return;
-    }
-
     Logger.Log(std::string(kLogPrefix) + ": processing melee config.");
     UpdateMeleeConfigFile();
 }

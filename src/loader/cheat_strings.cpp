@@ -163,12 +163,6 @@ void CFLACheatStringsLoader::UpdateCheatStringsFile()
 
 void CFLACheatStringsLoader::Process()
 {
-    if (store.empty() && !HasMarker(GAME_PATH((char*)"data/cheatStrings.dat")))
-    {
-        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
-        return;
-    }
-
     Logger.Log(std::string(kLogPrefix) + ": processing cheat strings.");
     UpdateCheatStringsFile();
 }

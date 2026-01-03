@@ -143,6 +143,23 @@ namespace
         return true;
     }
 
+    void RestoreIniFileFromInjector(const std::filesystem::path& iniPath)
+    {
+        std::filesystem::path injectorPath = InjectorPaths::GetInjectorPathFor(iniPath);
+        if (injectorPath.empty() || !std::filesystem::exists(injectorPath))
+        {
+            return;
+        }
+
+        try
+        {
+            std::filesystem::copy_file(injectorPath, iniPath, std::filesystem::copy_options::overwrite_existing);
+        }
+        catch (const std::exception&)
+        {
+        }
+    }
+
     bool TryParseModifierLine(const std::string& line, InjModifier& modifier, bool& opensBlock)
     {
         std::string trimmed = Trim(line);
@@ -681,6 +698,7 @@ bool CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, 
 
     if (!modified)
     {
+        RestoreIniFileFromInjector(iniPath);
         return false;
     }
 

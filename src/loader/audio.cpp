@@ -177,12 +177,6 @@ void CFLAAudioLoader::UpdateAudioFile()
 
 void CFLAAudioLoader::Process() {
     // ... (This function is unchanged)
-    if (store.empty() && !HasMarker(GAME_PATH((char*)"data/gtasa_vehicleAudioSettings.cfg")))
-    {
-        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
-        return;
-    }
-
     Logger.Log(std::string(kLogPrefix) + ": processing vehicle audio settings.");
     UpdateAudioFile();
 }

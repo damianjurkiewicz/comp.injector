@@ -75,6 +75,25 @@ namespace
         return names;
     }
 
+    void RestoreIniFileFromInjector(const std::filesystem::path& iniPath)
+    {
+        std::filesystem::path injectorPath = InjectorPaths::GetInjectorPathFor(iniPath);
+        if (injectorPath.empty() || !std::filesystem::exists(injectorPath))
+        {
+            return;
+        }
+
+        try
+        {
+            std::filesystem::copy_file(injectorPath, iniPath, std::filesystem::copy_options::overwrite_existing);
+            Logger.Log("MVA: restored " + iniPath.string() + " from " + injectorPath.string());
+        }
+        catch (const std::exception&)
+        {
+            Logger.Log("MVA: failed to restore " + iniPath.string() + " from " + injectorPath.string());
+        }
+    }
+
     std::filesystem::path GetBasePath(const std::filesystem::path& iniPath)
     {
         std::filesystem::path injectorPath = InjectorPaths::GetInjectorPathFor(iniPath);
@@ -298,7 +317,8 @@ void CMvaLoader::Process()
         std::filesystem::path basePath = GetBasePath(originalIni);
         if (!std::filesystem::exists(basePath))
         {
-            Logger.Log("MVA: base ini not found for " + group.first);
+            Logger.Log("MVA: base ini not found for " + group.first + ", restoring from injector.");
+            RestoreIniFileFromInjector(originalIni);
             continue;
         }
 
@@ -321,16 +341,19 @@ void CMvaLoader::Process()
             ReplaceIniData(finalData, mergedData);
         }
 
+        bool updatedThisFile = false;
         if (finalData.empty())
         {
-            Logger.Log("MVA: final content empty for " + group.first + ", skipping write.");
+            Logger.Log("MVA: final content empty for " + group.first + ", restoring from injector.");
+            RestoreIniFileFromInjector(originalIni);
             continue;
         }
 
         std::string finalContent = WriteIniData(finalData);
         if (finalContent.empty())
         {
-            Logger.Log("MVA: no ini data to write for " + group.first);
+            Logger.Log("MVA: no ini data to write for " + group.first + ", restoring from injector.");
+            RestoreIniFileFromInjector(originalIni);
             continue;
         }
 
@@ -353,10 +376,16 @@ void CMvaLoader::Process()
             std::filesystem::rename(tempPath, originalIni);
             Logger.Log("MVA: updated " + originalIni.string() + " using injector base");
             didUpdateAnything = true;
+            updatedThisFile = true;
         }
         catch (const std::exception& e)
         {
             Logger.Log(std::string("MVA: error swapping files: ") + e.what());
+        }
+
+        if (!updatedThisFile)
+        {
+            RestoreIniFileFromInjector(originalIni);
         }
     }
 

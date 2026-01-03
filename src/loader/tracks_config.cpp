@@ -152,12 +152,6 @@ void CFLATracksConfigLoader::UpdateTracksConfigFile()
 
 void CFLATracksConfigLoader::Process()
 {
-    if (store.empty() && !HasMarker(GAME_PATH((char*)"data/Paths/gtasa_tracks_config.dat")))
-    {
-        Logger.Log(std::string(kLogPrefix) + ": no entries and no marker, skipping.");
-        return;
-    }
-
     Logger.Log(std::string(kLogPrefix) + ": processing tracks config.");
     UpdateTracksConfigFile();
 }
