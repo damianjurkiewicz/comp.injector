@@ -74,44 +74,9 @@ namespace
         return names;
     }
 
-    std::filesystem::path GetBackupPath(const std::filesystem::path& iniPath)
+    std::filesystem::path GetBasePathFromInjector(const std::filesystem::path& iniPath)
     {
-        std::filesystem::path backupPath = iniPath;
-        backupPath += ".back";
-        std::filesystem::path cacheDir = Logger.GetCacheDirectory();
-        if (!cacheDir.empty())
-        {
-            std::filesystem::path relativePath = iniPath.is_absolute()
-                ? iniPath.relative_path()
-                : iniPath;
-            backupPath = cacheDir / relativePath;
-            backupPath += ".back";
-            std::error_code ec;
-            std::filesystem::create_directories(backupPath.parent_path(), ec);
-        }
-        return backupPath;
-    }
-
-    std::filesystem::path GetBasePathWithBackup(const std::filesystem::path& iniPath)
-    {
-        std::filesystem::path backupPath = GetBackupPath(iniPath);
-        if (std::filesystem::exists(iniPath) && !std::filesystem::exists(backupPath))
-        {
-            try
-            {
-                std::filesystem::copy_file(iniPath, backupPath, std::filesystem::copy_options::overwrite_existing);
-            }
-            catch (const std::exception&)
-            {
-            }
-        }
-
-        if (std::filesystem::exists(backupPath))
-        {
-            return backupPath;
-        }
-
-        return iniPath;
+        return GetInjectorBasePath(iniPath);
     }
 
     const std::unordered_set<std::string> kForceReplaceKeys = {
@@ -175,7 +140,7 @@ namespace
     };
 }
 
-void RestoreIniFilesFromBackups(const std::filesystem::path& modloaderRoot)
+void RestoreIniFilesFromInjector(const std::filesystem::path& modloaderRoot)
 {
     std::filesystem::directory_options options = std::filesystem::directory_options::skip_permission_denied;
     for (auto it = std::filesystem::recursive_directory_iterator(modloaderRoot, options);
@@ -202,20 +167,20 @@ void RestoreIniFilesFromBackups(const std::filesystem::path& modloaderRoot)
             continue;
         }
 
-        std::filesystem::path backupPath = GetBackupPath(iniPath);
-        if (!std::filesystem::exists(backupPath))
+        std::filesystem::path injectorPath = GetBasePathFromInjector(iniPath);
+        if (!std::filesystem::exists(injectorPath))
         {
             continue;
         }
 
         try
         {
-            std::filesystem::copy_file(backupPath, iniPath, std::filesystem::copy_options::overwrite_existing);
-            Logger.Log("MVA: restored " + iniPath.string() + " from " + backupPath.string());
+            std::filesystem::copy_file(injectorPath, iniPath, std::filesystem::copy_options::overwrite_existing);
+            Logger.Log("MVA: restored " + iniPath.string() + " from " + injectorPath.string());
         }
         catch (const std::exception&)
         {
-            Logger.Log("MVA: failed to restore " + iniPath.string() + " from " + backupPath.string());
+            Logger.Log("MVA: failed to restore " + iniPath.string() + " from " + injectorPath.string());
         }
     }
 }
@@ -255,20 +220,20 @@ void CMvaLoader::Process()
                 continue;
             }
 
-            std::filesystem::path backupPath = GetBackupPath(originalIni);
-            if (!std::filesystem::exists(backupPath))
+            std::filesystem::path injectorPath = GetBasePathFromInjector(originalIni);
+            if (!std::filesystem::exists(injectorPath))
             {
                 continue;
             }
 
             try
             {
-                std::filesystem::copy_file(backupPath, originalIni, std::filesystem::copy_options::overwrite_existing);
-                Logger.Log("MVA: restored " + originalIni.string() + " from " + backupPath.string());
+                std::filesystem::copy_file(injectorPath, originalIni, std::filesystem::copy_options::overwrite_existing);
+                Logger.Log("MVA: restored " + originalIni.string() + " from " + injectorPath.string());
             }
             catch (const std::exception&)
             {
-                Logger.Log("MVA: failed to restore " + originalIni.string() + " from " + backupPath.string());
+                Logger.Log("MVA: failed to restore " + originalIni.string() + " from " + injectorPath.string());
             }
         }
 
@@ -323,7 +288,7 @@ void CMvaLoader::Process()
 
         Logger.Log("MVA: original ini " + originalIni.string());
 
-        std::filesystem::path basePath = GetBasePathWithBackup(originalIni);
+        std::filesystem::path basePath = GetBasePathFromInjector(originalIni);
         if (!std::filesystem::exists(basePath))
         {
             Logger.Log("MVA: base ini not found for " + group.first);
@@ -379,7 +344,7 @@ void CMvaLoader::Process()
         {
             std::filesystem::remove(originalIni);
             std::filesystem::rename(tempPath, originalIni);
-            Logger.Log("MVA: updated " + originalIni.string() + " using backup mechanism");
+            Logger.Log("MVA: updated " + originalIni.string() + " using /injector base");
             didUpdateAnything = true;
         }
         catch (const std::exception& e)
@@ -390,7 +355,7 @@ void CMvaLoader::Process()
 
     if (!didUpdateAnything)
     {
-        Logger.Log("MVA: nothing updated from .mva files, restoring known INIs from .back when available.");
+        Logger.Log("MVA: nothing updated from .mva files, restoring known INIs from /injector when available.");
 
         const std::vector<std::string> kRestoreNames = {
             "ModelVariations_Peds.ini",
@@ -407,20 +372,20 @@ void CMvaLoader::Process()
                 continue;
             }
 
-            std::filesystem::path backupPath = GetBackupPath(originalIni);
-            if (!std::filesystem::exists(backupPath))
+            std::filesystem::path injectorPath = GetBasePathFromInjector(originalIni);
+            if (!std::filesystem::exists(injectorPath))
             {
                 continue;
             }
 
             try
             {
-                std::filesystem::copy_file(backupPath, originalIni, std::filesystem::copy_options::overwrite_existing);
-                Logger.Log("MVA: restored " + originalIni.string() + " from " + backupPath.string());
+                std::filesystem::copy_file(injectorPath, originalIni, std::filesystem::copy_options::overwrite_existing);
+                Logger.Log("MVA: restored " + originalIni.string() + " from " + injectorPath.string());
             }
             catch (const std::exception&)
             {
-                Logger.Log("MVA: failed to restore " + originalIni.string() + " from " + backupPath.string());
+                Logger.Log("MVA: failed to restore " + originalIni.string() + " from " + injectorPath.string());
             }
         }
     }
@@ -773,4 +738,3 @@ std::string CMvaLoader::WriteIniData(const IniData& data) const
 
     return out.str();
 }
-

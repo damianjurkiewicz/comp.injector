@@ -10,6 +10,17 @@ CLogger Logger;
 void CLogger::Init(const std::filesystem::path& logPath)
 {
     path = logPath;
+
+    if (path.empty())
+    {
+        return;
+    }
+
+    std::ofstream out(path, std::ios::trunc);
+    if (!out.is_open())
+    {
+        return;
+    }
 }
 
 void CLogger::Log(const std::string& message)
