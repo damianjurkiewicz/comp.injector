@@ -66,8 +66,11 @@ AnotherSetting=On
 ( gtasa_weapon_config.dat , cheatStrings.dat , gtasa_melee_config.dat, gtasa_radarBlipSpriteFilenames.dat, gtasa_trainTypeCarriages.dat, model_special_features.dat , gtasa_vehicleAudioSettings.cfg)
 2. COMP.Injector merges it with the original FLA file
 3. Optional: prepare a .fla file like, and put in any modloader folder
+
 `sacgyosemite 0 26 25 0 0.85 1.0 7 1.05946 2 0 13 3 38 0.0
 sacgyoscclb 0 26 25 0 0.85 1.0 7 1.05946 2 0 13 3 38 0.0`
-ATTENTION: Usage of .fla file works only for `gtasa_vehicleAudioSettings.cfg` and `gtasa_weapon_config.dat` 
+
+
+ATTENTION: Usage of .fla file works only for `gtasa_vehicleAudioSettings.cfg` and `gtasa_weapon_config.dat`.
 
 
