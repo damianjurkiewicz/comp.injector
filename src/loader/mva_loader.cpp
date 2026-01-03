@@ -670,11 +670,12 @@ void CMvaLoader::ReplaceIniData(IniData& target, const IniData& source) const
 {
     for (const auto& sectionPair : source)
     {
-        auto& section = target[sectionPair.first];
-        for (const auto& kv : sectionPair.second)
-        {
-            section[kv.first] = kv.second;
-        }
+        // ZMIANA: Zamiast iterować po kluczach i podmieniać pojedyncze wartości,
+        // przypisujemy całą zawartość sekcji z 'source' do 'target'.
+        // Dzięki temu, jeśli w 'target' (niższy priorytet) były klucze, 
+        // których nie ma w 'source' (wyższy priorytet), zostaną one usunięte.
+        // Sekcja staje się identyczna jak w pliku o wyższym priorytecie.
+        target[sectionPair.first] = sectionPair.second;
     }
 }
 
