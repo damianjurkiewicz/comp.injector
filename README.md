@@ -2,7 +2,9 @@
 
 COMP.Injector is an `.asi` plugin that **merges and overrides selected data from configuration files** before any other mods start loading.  
 This lets you safely add new objects, vehicles, and settings without manual file merging and without conflict risk.
-The most important: when you delete your modified files from /modloader mod automatically load default settings. Defualt settings files are stored in COMP.Injector/references. 
+
+
+**The most important:** when you delete your modified files from /modloader mod automatically load default settings. Defualt settings files are stored in COMP.Injector/references. 
 
 ## Core file types
 
