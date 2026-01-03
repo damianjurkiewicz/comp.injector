@@ -1,105 +1,73 @@
-# Comp.Injector – your best companion when adding new props or cars
+# COMP.Injector – Overview and Usage Examples
 
-## 📖 Read Wiki
-- [Loading cargrp.dat](https://github.com/user-grinch/comp.injector/wiki/1.-cargrp.dat)
-- [Loading FLA Audio.dat](https://github.com/user-grinch/comp.injector/wiki/2.-gtasa_vehicleAudioSettings.cfg)
-- [Loading Object.dat](https://github.com/user-grinch/comp.injector/wiki/3.-Objects.dat)
+Below is a concise explanation of how **COMP.Injector** works, along with practical usage examples. This file is designed for quick setup and to avoid conflicts with other mods.
 
-## 🚘 What is Comp.Injector?
+## What does COMP.Injector do?
 
-**Comp.Injector** is a tiny `.asi` plugin that enhances GTA San Andreas modding by fixing what ModLoader doesn't:
+COMP.Injector is an `.asi` plugin that **merges and overrides selected data from configuration files** before any other mods start loading.  
+This lets you safely add new objects, vehicles, and settings without manual file merging and without conflict risk.
 
-- Merges difficult files like `cargrp.dat`, `object.dat`, and `gtasa_vehicleAudioSettings.cfg`
-- Prevents crashes and manual merging
-- Ensures proper load order and compatibility with Fastman92 Limit Adjuster (FLA)
-- Ignore folders with '.' as a prefix, preserving modloader functionality
+## Core file types
 
-## 🧐 Key Features
+1. **`.mva` – Model Variations**
+   - Files responsible for model variants (vehicles, objects, etc.).
+   - Use them to add new variants without manual edits.
 
-- 🧩 **Fixes ModLoader limitations** (`cargrp.dat`, `object.dat`)
-- 🔊 **Automates audio merging** for Fastman92 Limit Adjuster via `gtasa_vehicleAudioSettings.cfg`
-- ❌ **No need to touch original `data/` configuration files** – all handled automatically
-- 🚀 **Optimized for speed** – minimal startup overhead
-- 🛠️ **Compatible with ModLoader & FLA**
+2. **`.inj` – arbitrary INI files**
+   - Useful for **preconfiguring mods** (for example, **MixMods** settings).
+   - Keeps all configuration in one place and applies it automatically.
 
+3. **`.fla` and original Fastman Limit Adjuster files**
+   - Support for **Fastman92 Limit Adjuster**–related files.
+   - Allows consistent merging and loading with the rest of your setup.
 
-## 🛠️ It suits best
+## Required loader
 
-- **Silent’s ASI Loader (2025 update by fastman92)** – allows proper load order of `.asi` plugins  → [Download & info](https://gtaforums.com/topic/523982-relopensrc-silents-asi-loader/page/5/#findComment-1072560173)
+**COMP.Injector must load first.**  
+You must use **COMP.ASI Loader**, which guarantees the correct loading order.
 
+This is critical because COMP.Injector must **override values before other mods are loaded**.
 
-## 📊 Installation
+## Why this approach?
 
-1. Download and install the newest [Silent’s ASI Loader](https://gtaforums.com/topic/523982-relopensrc-silents-asi-loader/page/5/#findComment-1072560173)
-2. Place `$comp.injector.asi` in your main GTA SA directory (where `gta_sa.exe` is)
-3. Drop regular text files with `*.comp.injector` extension into ModLoader (just like you normally do for ModLoader .txt files) Check the [Wiki](https://github.com/user-grinch/comp.injector/wiki)
-4. Launch the game – done!
+Compared to ModLoader:
 
+- COMP.Injector **does not work in RAM**. It **modifies data on disk**.
+- This means the system needs a moment to update files.
+- This approach was **necessary**, because repeated attempts to integrate ModLoader with Fastman Limit Adjuster failed due to race conditions.
 
-## ⚙️ How It Works
+**The result:**
+- simple implementation,
+- very stable behavior,
+- no startup conflicts or unpredictable errors.
 
-Comp.Injector is **guaranteed to run before other plugins**, including:
+## Usage examples
 
-- ✅ ModLoader
-- ✅ Fastman92 Limit Adjuster 
+### 1) Model Variations (.mva)
 
-This ensures safe memory access and proper data injection, **without race conditions or file conflicts**.
-This behavior is made possible by the latest version of [Silent’s ASI Loader](https://gtaforums.com/topic/523982-relopensrc-silents-asi-loader/page/5/#findComment-1072560173), which guarantees load order of `.asi` plugins.
+1. Place `example.mva` in the COMP.Injector directory.
+2. Start the game. COMP.Injector merges the data before other mods load.
 
-🧹Plugin must be named `$comp.injector.asi`, and make sure it's placed in the main GTA SA directory to ensure it loads early.
+### 2) INI configurations (.inj)
 
-📚 File format details are available in the project [Wiki](https://github.com/user-grinch/comp.injector/wiki)
+1. Create `mixmods_config.inj`:
 
-
-### 🗺️ Fastaman Limit Adjuster - Best Settings
-For cargrp.dat loading:
-
-`Cargrp cars per group = 63` 
-
-`Streaming_DesiredNumberOfVehiclesLoaded = 62` 
-
-For object.dat loading:
-
-`Object info entries = 200`
-
-For #VehicleStructs use Open Limit Adjuster default settings. 
-
-### 🗺️ MixSets - Best Settings
-
-Comment out those lines with # to avoid conflicts and to grant a flawless stability.
-
-```
-#MinDesiredLoadedVeh  = 4        # (2) Minimum vehicle model variations loaded in memory.
-#NumDesiredLoadedVeh  = 36       # (22) How many desired vehicle model variations loaded into memory.
-#DelayLoadDesiredVeh  = 250      # (350) Delay time (in number of frames) to load a new vehicle model variation.
-#MinLoadedGangVeh     = 4        # (1) Minimum of gang vehicle models loaded in memory.
+```ini
+[General]
+ExampleSetting=1
+AnotherSetting=On
 ```
 
-## ⚠️ Comp.Injector and `.dat` Files
+2. Place the file in a folder handled by COMP.Injector.
+3. The configuration is applied automatically on game start.
 
-By default, **Comp.Injector** will ask whether to rename (disable) `cargrp.dat` and `object.dat` files:  
-<img width="406" height="147" alt="image" src="https://github.com/user-attachments/assets/8f0e74e7-a8a7-4221-92ec-69f5bb2e6163" />
+### 3) Fastman Limit Adjuster (.fla)
 
-It will append `.bak` to the file name:  
-<img width="178" height="120" alt="image" src="https://github.com/user-attachments/assets/0eee36ad-a553-4e71-936c-d6bdafca4673" />
+1. Place `fla_config.fla` in the correct location.
+2. COMP.Injector merges it with the original FLA files.
+3. The values are applied before other mods start.
 
-**Why does this happen?**  
-Comp.Injector starts **before** Modloader. Its task is to add new entries to the original `object.dat` or `cargrp.dat` files stored in `/data`.  
-The purpose of Comp.Injector is to load lines for newly added objects into `object.dat` or to add newly added cars into `cargrp.dat`.  
-When you have any object.dat or cargrp.dat inside modloader folder, modloader.asi will load this data again. It will cause the crashes. 
+## Summary
 
-👉 If you just want to load an `object.dat` or `cargrp.dat` file, leave it in Modloader. Don’t use Comp.Injector for it.  
-👉 When adding new props (like *Project Props 3*) or cars with FLA, Comp.Injector is your friend.  
-
-⚠️ **Important:** Comp.Injector will only load files with the `.comp.injector` extension and only those which are implemented. It will **ignore all others**.
-
-
-## 📄 License
-
-MIT License – free to use, share, or modify. If you use this in your modpack, please credit and link back to this repository.
-
-
-## 🤝 Authors
-
-- **Grinch** – Core loader logic, `.asi` development
-- **Damix** – Concept, design, testing, and integration ideas
+COMP.Injector is a reliable tool for data merging and safe mod startup.  
+By supporting `.mva`, `.inj`, and `.fla` files and enforcing early loading via **COMP.ASI Loader**, it provides stable and predictable behavior even in complex mod setups.
