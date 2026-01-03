@@ -20,6 +20,16 @@ namespace
         return value;
     }
 
+    std::string ToUpper(std::string value)
+    {
+        for (char& ch : value)
+        {
+            ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+        }
+        return value;
+    }
+
+
     bool IsHiddenFolder(const std::filesystem::path& path)
     {
         std::string folderName = path.filename().string();
@@ -580,32 +590,30 @@ CMvaLoader::IniData CMvaLoader::ReadIniData(const std::filesystem::path& path) c
         trimmedLine.erase(0, firstNonWhitespace);
         trimmedLine.erase(trimmedLine.find_last_not_of(" \t\r\n") + 1);
 
+        // --- SEKCJE ---
         if (trimmedLine.size() >= 2 && trimmedLine.front() == '[' && trimmedLine.back() == ']')
         {
             std::string sectionName = trimmedLine.substr(1, trimmedLine.size() - 2);
-
-            // ZMIANA: Najpierw dzielimy nazwy sekcji, a potem sprawdzamy wyjątek dla [Settings]
             std::vector<std::string> rawSections = SplitSectionNames(sectionName);
             currentSections.clear();
 
             for (const auto& rawSec : rawSections)
             {
-                // Jeśli sekcja to "Settings" (niezależnie od wielkości liter w pliku), zachowujemy ją
-                // lub wymuszamy "Settings", jeśli logika gry tego wymaga.
-                // Tutaj zachowujemy oryginał wpisany przez usera, jeśli pasuje do "settings".
+                // Jeśli to "Settings" (bez względu na wielkość liter), zachowaj oryginał
                 if (ToLower(rawSec) == "settings")
                 {
                     currentSections.push_back(rawSec);
                 }
                 else
                 {
-                    // Inne sekcje nadal normalizujemy do małych liter (standardowe zachowanie)
-                    currentSections.push_back(ToLower(rawSec));
+                    // Reszta sekcji -> WIELKIE LITERY
+                    currentSections.push_back(ToUpper(rawSec));
                 }
             }
             continue;
         }
 
+        // --- KLUCZE I WARTOŚCI ---
         const auto equals = trimmedLine.find('=');
         if (equals == std::string::npos || currentSections.empty())
         {
@@ -615,9 +623,7 @@ CMvaLoader::IniData CMvaLoader::ReadIniData(const std::filesystem::path& path) c
         std::string key = trimmedLine.substr(0, equals);
         key.erase(key.find_last_not_of(" \t\r\n") + 1);
 
-        // ZMIANA: Usunięto normalizację klucza do małych liter.
-        // Klucze są teraz case-sensitive (np. RecursiveVariations != recursivevariations).
-        // key = ToLower(key); 
+        // UWAGA: Usunięto ToLower(key) -> Klucze są teraz Case-Sensitive (np. RecursiveVariations)
 
         std::string value = trimmedLine.substr(equals + 1);
         value.erase(0, value.find_first_not_of(" \t\r\n"));
@@ -676,19 +682,40 @@ std::string CMvaLoader::WriteIniData(const IniData& data) const
 {
     std::ostringstream out;
     bool firstSection = true;
+
+    // KROK 1: Sprawdź, czy istnieje sekcja "Settings" i zapisz ją jako pierwszą
+    // Szukamy dokładnie klucza "Settings", bo tak go zapisaliśmy w ReadIniData
+    auto settingsIt = data.find("Settings");
+    if (settingsIt != data.end())
+    {
+        out << "[Settings]\n";
+        for (const auto& kv : settingsIt->second)
+        {
+            out << kv.first << "=" << kv.second << "\n";
+        }
+        firstSection = false;
+    }
+
+    // KROK 2: Zapisz wszystkie pozostałe sekcje
     for (const auto& sectionPair : data)
     {
+        // Jeśli trafimy na "Settings", pomijamy ją, bo już została zapisana w KROKU 1
+        if (sectionPair.first == "Settings")
+        {
+            continue;
+        }
+
         if (!firstSection)
         {
             out << "\n";
         }
-        firstSection = false;
 
         out << "[" << sectionPair.first << "]\n";
         for (const auto& kv : sectionPair.second)
         {
             out << kv.first << "=" << kv.second << "\n";
         }
+        firstSection = false;
     }
 
     return out.str();
