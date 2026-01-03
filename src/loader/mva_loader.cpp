@@ -583,8 +583,26 @@ CMvaLoader::IniData CMvaLoader::ReadIniData(const std::filesystem::path& path) c
         if (trimmedLine.size() >= 2 && trimmedLine.front() == '[' && trimmedLine.back() == ']')
         {
             std::string sectionName = trimmedLine.substr(1, trimmedLine.size() - 2);
-            // ZMIANA: Normalizacja nazwy sekcji do małych liter, aby uniknąć duplikatów np. [Zone] i [ZONE]
-            currentSections = SplitSectionNames(ToLower(sectionName));
+
+            // ZMIANA: Najpierw dzielimy nazwy sekcji, a potem sprawdzamy wyjątek dla [Settings]
+            std::vector<std::string> rawSections = SplitSectionNames(sectionName);
+            currentSections.clear();
+
+            for (const auto& rawSec : rawSections)
+            {
+                // Jeśli sekcja to "Settings" (niezależnie od wielkości liter w pliku), zachowujemy ją
+                // lub wymuszamy "Settings", jeśli logika gry tego wymaga.
+                // Tutaj zachowujemy oryginał wpisany przez usera, jeśli pasuje do "settings".
+                if (ToLower(rawSec) == "settings")
+                {
+                    currentSections.push_back(rawSec);
+                }
+                else
+                {
+                    // Inne sekcje nadal normalizujemy do małych liter (standardowe zachowanie)
+                    currentSections.push_back(ToLower(rawSec));
+                }
+            }
             continue;
         }
 
@@ -596,8 +614,10 @@ CMvaLoader::IniData CMvaLoader::ReadIniData(const std::filesystem::path& path) c
 
         std::string key = trimmedLine.substr(0, equals);
         key.erase(key.find_last_not_of(" \t\r\n") + 1);
-        // ZMIANA: Normalizacja klucza do małych liter
-        key = ToLower(key);
+
+        // ZMIANA: Usunięto normalizację klucza do małych liter.
+        // Klucze są teraz case-sensitive (np. RecursiveVariations != recursivevariations).
+        // key = ToLower(key); 
 
         std::string value = trimmedLine.substr(equals + 1);
         value.erase(0, value.find_first_not_of(" \t\r\n"));
