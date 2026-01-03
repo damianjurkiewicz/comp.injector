@@ -49,7 +49,7 @@ Compared to ModLoader:
 
 ### 2) INI configurations (.inj)
 
-1. Create a file `mySettings.inj`:
+1. Create a file `mySettings.inj`, for example for MixMods.ini:
 
 ```ini
 MixMods.ini
