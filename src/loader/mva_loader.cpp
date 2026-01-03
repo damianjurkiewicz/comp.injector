@@ -683,8 +683,7 @@ std::string CMvaLoader::WriteIniData(const IniData& data) const
     std::ostringstream out;
     bool firstSection = true;
 
-    // KROK 1: Sprawdź, czy istnieje sekcja "Settings" i zapisz ją jako pierwszą
-    // Szukamy dokładnie klucza "Settings", bo tak go zapisaliśmy w ReadIniData
+    // KROK 1: Zapisz sekcję [Settings] jako pierwszą
     auto settingsIt = data.find("Settings");
     if (settingsIt != data.end())
     {
@@ -696,10 +695,9 @@ std::string CMvaLoader::WriteIniData(const IniData& data) const
         firstSection = false;
     }
 
-    // KROK 2: Zapisz wszystkie pozostałe sekcje
+    // KROK 2: Przetwórz pozostałe sekcje
     for (const auto& sectionPair : data)
     {
-        // Jeśli trafimy na "Settings", pomijamy ją, bo już została zapisana w KROKU 1
         if (sectionPair.first == "Settings")
         {
             continue;
@@ -711,10 +709,64 @@ std::string CMvaLoader::WriteIniData(const IniData& data) const
         }
 
         out << "[" << sectionPair.first << "]\n";
+
+        // Kontenery tymczasowe
+        std::vector<std::pair<std::string, std::string>> priorityKeys;
+        std::vector<std::pair<std::string, std::string>> normalKeys;
+
         for (const auto& kv : sectionPair.second)
+        {
+            // WARUNEK PRIORYTETU WIZUALNEGO:
+            // 1. Jest na liście kForceReplaceKeys (ważne ustawienia)
+            // 2. LUB jest to klucz "Global" (wyjątek na żądanie)
+            // 3. LUB zaczyna się od "Wanted" (żeby też były wysoko, jak w Twoim przykładzie)
+            bool isVisualPriority = (kForceReplaceKeys.count(kv.first) > 0)
+                || (kv.first == "Global")
+                || (kv.first.rfind("Wanted", 0) == 0); // rfind(..., 0) == 0 to odpowiednik starts_with
+
+            if (isVisualPriority)
+            {
+                priorityKeys.push_back(kv);
+            }
+            else
+            {
+                normalKeys.push_back(kv);
+            }
+        }
+
+        // Sortowanie kluczy PRIORYTETOWYCH
+        // Tutaj ustalamy sztywną kolejność: Global zawsze pierwszy
+        auto prioritySort = [](const std::pair<std::string, std::string>& a, const std::pair<std::string, std::string>& b)
+            {
+                // Jeśli jeden z kluczy to Global, ma on pierwszeństwo absolutne
+                if (a.first == "Global") return true;
+                if (b.first == "Global") return false;
+
+                // Jeśli oba to nie Global, sortujemy alfabetycznie
+                return a.first < b.first;
+            };
+
+        // Sortowanie zwykłych kluczy alfabetycznie
+        auto normalSort = [](const std::pair<std::string, std::string>& a, const std::pair<std::string, std::string>& b)
+            {
+                return a.first < b.first;
+            };
+
+        std::sort(priorityKeys.begin(), priorityKeys.end(), prioritySort);
+        std::sort(normalKeys.begin(), normalKeys.end(), normalSort);
+
+        // Zapisz priorytetowe
+        for (const auto& kv : priorityKeys)
         {
             out << kv.first << "=" << kv.second << "\n";
         }
+
+        // Zapisz resztę
+        for (const auto& kv : normalKeys)
+        {
+            out << kv.first << "=" << kv.second << "\n";
+        }
+
         firstSection = false;
     }
 
