@@ -33,7 +33,7 @@ This is critical because COMP.Injector must **override values before other mods 
 Compared to ModLoader:
 
 - This approach was **necessary**, because repeated attempts to integrate ModLoader with Fastman Limit Adjuster failed due to race conditions 
-- COMP.Injector **does not work in RAM**. It **modifies data on disk**
+- COMP.Injector **does not work in RAM** like modloader. It **modifies data on disk**
 
 **The result:**
 - simple implementation,
