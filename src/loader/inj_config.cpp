@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "inj_config.h"
+#include "injector_paths.h"
 #include "logger.h"
 #include <fstream>
 #include <optional>
@@ -61,53 +62,20 @@ namespace
         return !name.empty() && name[0] == '.';
     }
 
-    std::filesystem::path GetBackupPath(const std::filesystem::path& iniPath)
+    std::filesystem::path GetBasePath(const std::filesystem::path& iniPath)
     {
-        std::filesystem::path backupPath = iniPath;
-        backupPath += ".back";
-
-        std::filesystem::path cacheDir = Logger.GetCacheDirectory();
-        if (!cacheDir.empty())
+        std::filesystem::path injectorPath = InjectorPaths::GetInjectorPathFor(iniPath);
+        if (!injectorPath.empty() && std::filesystem::exists(injectorPath))
         {
-            std::filesystem::path relativePath = iniPath.is_absolute()
-                ? iniPath.relative_path()
-                : iniPath;
-            backupPath = cacheDir / relativePath;
-            backupPath += ".back";
-            std::error_code ec;
-            std::filesystem::create_directories(backupPath.parent_path(), ec);
-        }
-
-        return backupPath;
-    }
-
-    std::filesystem::path GetBasePathWithBackup(const std::filesystem::path& iniPath)
-    {
-        std::filesystem::path backupPath = GetBackupPath(iniPath);
-
-        // Create baseline backup next to the edited ini, only once.
-        if (std::filesystem::exists(iniPath) && !std::filesystem::exists(backupPath))
-        {
-            try
-            {
-                std::filesystem::copy_file(iniPath, backupPath, std::filesystem::copy_options::overwrite_existing);
-            }
-            catch (const std::exception&)
-            {
-            }
-        }
-
-        if (std::filesystem::exists(backupPath))
-        {
-            return backupPath;
+            return injectorPath;
         }
 
         return iniPath;
     }
 
-    // Restore *.ini from cached *.ini.back under a root folder (best-effort).
+    // Restore *.ini from injector originals under a root folder (best-effort).
     // This is the "nothing to update => reset to baseline" behavior.
-    void RestoreIniFilesFromBackups(const std::filesystem::path& root)
+    void RestoreIniFilesFromInjector(const std::filesystem::path& root)
     {
         if (root.empty() || !std::filesystem::exists(root))
         {
@@ -140,15 +108,15 @@ namespace
                 continue;
             }
 
-            const std::filesystem::path backPath = GetBackupPath(iniPath);
-            if (!std::filesystem::exists(backPath))
+            const std::filesystem::path injectorPath = InjectorPaths::GetInjectorPathFor(iniPath);
+            if (injectorPath.empty() || !std::filesystem::exists(injectorPath))
             {
                 continue;
             }
 
             try
             {
-                std::filesystem::copy_file(backPath, iniPath, std::filesystem::copy_options::overwrite_existing);
+                std::filesystem::copy_file(injectorPath, iniPath, std::filesystem::copy_options::overwrite_existing);
             }
             catch (const std::exception&)
             {
@@ -300,11 +268,11 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
 
     Logger.Log(std::string(kLogPrefix) + ": found " + std::to_string(injFiles.size()) + " .inj files.");
 
-    // If there are no .inj files at all, restore every *.ini from *.ini.back in /modloader.
+    // If there are no .inj files at all, restore every *.ini from injector originals in /modloader.
     if (injFiles.empty())
     {
-        Logger.Log(std::string(kLogPrefix) + ": no .inj files found, restoring ini backups.");
-        RestoreIniFilesFromBackups(modloaderRoot);
+        Logger.Log(std::string(kLogPrefix) + ": no .inj files found, restoring ini originals from injector.");
+        RestoreIniFilesFromInjector(modloaderRoot);
         return;
     }
 
@@ -318,8 +286,8 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
     // If parsing produced no entries, treat it as "nothing to update" and restore.
     if (entries.empty())
     {
-        Logger.Log(std::string(kLogPrefix) + ": no entries parsed, restoring ini backups.");
-        RestoreIniFilesFromBackups(modloaderRoot);
+        Logger.Log(std::string(kLogPrefix) + ": no entries parsed, restoring ini originals from injector.");
+        RestoreIniFilesFromInjector(modloaderRoot);
         return;
     }
 
@@ -356,8 +324,8 @@ void CInjConfigLoader::Process(const std::filesystem::path& pluginDir)
     // If nothing was actually modified/written, restore baselines in /modloader.
     if (!didUpdateAnything)
     {
-        Logger.Log(std::string(kLogPrefix) + ": no changes written, restoring ini backups.");
-        RestoreIniFilesFromBackups(modloaderRoot);
+        Logger.Log(std::string(kLogPrefix) + ": no changes written, restoring ini originals from injector.");
+        RestoreIniFilesFromInjector(modloaderRoot);
         return;
     }
 
@@ -554,7 +522,7 @@ void CInjConfigLoader::ParseFile(const std::filesystem::path& path)
 bool CInjConfigLoader::ApplyEntriesToFile(const std::filesystem::path& iniPath, const std::vector<InjEntry>& entries) const
 {
     std::vector<std::string> lines;
-    std::filesystem::path basePath = GetBasePathWithBackup(iniPath);
+    std::filesystem::path basePath = GetBasePath(iniPath);
     if (std::filesystem::exists(basePath))
     {
         std::ifstream in(basePath);

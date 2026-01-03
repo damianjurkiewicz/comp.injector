@@ -49,3 +49,25 @@ std::filesystem::path CLogger::GetCacheDirectory() const
     std::filesystem::create_directories(cacheDir, ec);
     return cacheDir;
 }
+
+std::filesystem::path CLogger::GetGameDirectory() const
+{
+    char buffer[MAX_PATH] = {};
+    if (GetModuleFileNameA(nullptr, buffer, MAX_PATH) == 0)
+    {
+        return {};
+    }
+
+    return std::filesystem::path(buffer).parent_path();
+}
+
+std::filesystem::path CLogger::GetInjectorDirectory() const
+{
+    std::filesystem::path gameDir = GetGameDirectory();
+    if (gameDir.empty())
+    {
+        return {};
+    }
+
+    return gameDir / "injector";
+}
