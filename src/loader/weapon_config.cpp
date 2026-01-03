@@ -31,36 +31,8 @@ bool IsEndMarker(const std::string &line) {
     return lowered == "end" || lowered == "the end" || lowered == ";the end";
 }
 
-std::filesystem::path GetBackupPath(const std::filesystem::path &settingsPath) {
-    std::filesystem::path backupPath = settingsPath;
-    backupPath += ".back";
-    std::filesystem::path cacheDir = Logger.GetCacheDirectory();
-    if (!cacheDir.empty()) {
-        std::filesystem::path relativePath = settingsPath.is_absolute()
-            ? settingsPath.relative_path()
-            : settingsPath;
-        backupPath = cacheDir / relativePath;
-        backupPath += ".back";
-        std::error_code ec;
-        std::filesystem::create_directories(backupPath.parent_path(), ec);
-    }
-    return backupPath;
-}
-
-std::filesystem::path GetBasePathWithBackup(const std::filesystem::path &settingsPath) {
-    std::filesystem::path backupPath = GetBackupPath(settingsPath);
-    if (std::filesystem::exists(settingsPath) && !std::filesystem::exists(backupPath)) {
-        try {
-            std::filesystem::copy_file(settingsPath, backupPath, std::filesystem::copy_options::overwrite_existing);
-        } catch (const std::exception &) {
-        }
-    }
-
-    if (std::filesystem::exists(backupPath)) {
-        return backupPath;
-    }
-
-    return settingsPath;
+std::filesystem::path GetBasePathFromInjector(const std::filesystem::path &settingsPath) {
+    return GetInjectorBasePath(settingsPath);
 }
 
 const char* kMarker = "; comp.injector added weapons";
@@ -87,7 +59,7 @@ void CFLAWeaponConfigLoader::UpdateWeaponConfigFile()
     std::filesystem::path settingsPath = GAME_PATH((char*)"data/gtasa_weapon_config.dat");
     std::filesystem::path settingsPathTemp = settingsPath;
     settingsPathTemp += ".tmp";
-    std::filesystem::path basePath = GetBasePathWithBackup(settingsPath);
+    std::filesystem::path basePath = GetBasePathFromInjector(settingsPath);
     auto isCommentOrEmpty = [](const std::string &value)
         {
             const auto start = value.find_first_not_of(" \t\r\n");

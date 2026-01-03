@@ -14,3 +14,30 @@
 #define MODNAME_EXT MODNAME ".asi"
 
 extern CIniReader gConfig;
+
+inline std::filesystem::path GetInjectorBasePath(const std::filesystem::path& originalPath)
+{
+    std::filesystem::path gameRoot = GAME_PATH((char*)"");
+    if (gameRoot.empty())
+    {
+        return originalPath;
+    }
+
+    std::filesystem::path injectorRoot = gameRoot / "injector";
+    std::error_code ec;
+    std::filesystem::path relativePath = originalPath.is_absolute()
+        ? std::filesystem::relative(originalPath, gameRoot, ec)
+        : originalPath;
+    if (ec || relativePath.empty())
+    {
+        return originalPath;
+    }
+
+    const std::string relativeStr = relativePath.generic_string();
+    if (relativeStr.rfind("..", 0) == 0)
+    {
+        return originalPath;
+    }
+
+    return injectorRoot / relativePath;
+}
